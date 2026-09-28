@@ -35,6 +35,7 @@ CxSign 是一个第三方开源的图形界面签到工具。只需输入课程�
 - [常见问题](#常见问题)
 - [Roadmap](#roadmap)
 - [项目结构](#项目结构)
+- [反馈与建议](#-反馈与建议)
 - [贡献](#贡献)
 - [接口参考与致谢](#接口参考与致谢)
 - [第三方组件](#第三方组件)
@@ -44,12 +45,12 @@ CxSign 是一个第三方开源的图形界面签到工具。只需输入课程�
 
 ## 下载
 
-> 当前为 Private 验收准备阶段，尚未发布 v1.0.0 Release。以下为计划中的发行包名称，不代表已有下载；请先按[快速开始](#快速开始)运行源码。
+推荐通过 [GitHub Releases](https://github.com/Xiaotian69/CampusSign/releases/latest) 下载最新版。源码运行见[快速开始](#快速开始)。
 
 | 版本 | 说明 |
 | --- | --- |
-| `CxSign-v1.0.0-SCUFE.zip` | 山西财经大学版，内置山财地点预设 |
-| `CxSign-v1.0.0-Generic.zip` | 通用版，不含任何学校预设 |
+| [CxSign-v1.0.0-SCUFE.zip](https://github.com/Xiaotian69/CampusSign/releases/download/v1.0.0/CxSign-v1.0.0-SCUFE.zip) | 山西财经大学版，内置山财地点预设 |
+| [CxSign-v1.0.0-Generic.zip](https://github.com/Xiaotian69/CampusSign/releases/download/v1.0.0/CxSign-v1.0.0-Generic.zip) | 通用版，不含任何学校预设 |
 
 ### 如何选择版本
 
@@ -141,7 +142,7 @@ CxSign 是一个第三方开源的图形界面签到工具。只需输入课程�
 
 ## Roadmap
 
-- [ ] 打包为单文件可执行程序（`exe`），进一步降低使用门槛
+- [x] Windows 单文件可执行程序及双 Edition 发行包
 - [ ] 更多山财校区 / 教学楼地点预设
 - [ ] 学习资料在线索引
 - [ ] 检查更新（读取 GitHub Releases 最新版本）
@@ -187,6 +188,15 @@ CxSign/
 
 ---
 
+## 💬 反馈与建议
+
+使用问题、功能建议、地点补充或山财学习资料建议，欢迎通过以下方式反馈：
+
+- [GitHub Issues](https://github.com/Xiaotian69/CampusSign/issues)
+- Email：[andyzhao722@gmail.com](mailto:andyzhao722@gmail.com)
+
+请勿发送账号、密码、Cookie、Token、学号或私人配置；截图请先遮挡个人信息。
+
 ## 贡献
 
 欢迎学弟学妹参与维护。报告 Bug、补充地点、建议功能或提交 PR 请参考 [CONTRIBUTING.md](CONTRIBUTING.md)。
@@ -198,9 +208,7 @@ CxSign/
 
 ## 接口参考与致谢
 
-本项目的签到流程在实现过程中参考了社区学习通签到项目（如 `chaoxing_autosign` 系列）对学习通接口的调用方式。当前 CxSign 的核心代码、界面、配置体系与文档均为本项目独立实现，仅保留了实现功能所必需的平台接口信息（接口地址、请求字段、移动端 UA），详见 [CORE_BEHAVIOR_SPEC.md](CORE_BEHAVIOR_SPEC.md) 与 [protocol.py](protocol.py)。
-
-在此向所有分享学习通接口经验的社区开发者致谢。
+CxSign 的实现过程中参考了社区公开的学习通接口调用经验。当前项目代码、界面、配置体系和文档由本项目维护。感谢社区开发者分享相关经验。
 
 ---
 
@@ -216,6 +224,6 @@ CxSign/
 
 ---
 
-当前核心仍待维护者真实签到验收；离线测试通过不等同于线上可用。构建步骤和验收清单见 [发布准备与验收](docs/RELEASE_CHECKLIST.md)。
+构建与维护检查清单见 [发布检查清单](docs/RELEASE_CHECKLIST.md)。
 
 如果 CxSign 对你有帮助，欢迎点一个 Star ⭐。

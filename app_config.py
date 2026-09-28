@@ -11,6 +11,7 @@ from paths import resource_root, data_root
 # ===== 品牌信息 =====
 APP_NAME = 'CxSign'
 APP_VERSION = '1.0.0'
+CONTACT_EMAIL = 'andyzhao722@gmail.com'
 REPO_URL = 'https://github.com/Xiaotian69/CampusSign'
 ISSUES_URL = REPO_URL + '/issues'
 EXAM_REPO_URL = 'https://github.com/Xiaotian69/shanxi-caijing-exams'

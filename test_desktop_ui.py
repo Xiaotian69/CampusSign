@@ -81,6 +81,14 @@ class UiTests(unittest.TestCase):
         self.app = self.make_app('generic')
         self.assertEqual(self.app.locations, [])
         self.assertEqual(self.app.fixed_name.get(), '')
+        self.assertFalse(any('山西财经大学' in t for t in collect_texts(self.app.pages['home'])))
+
+    def test_contact_visible_only_in_help_and_about(self):
+        self.app = self.make_app('scufe')
+        email = desktop_ui.app_config.CONTACT_EMAIL
+        self.assertNotIn(email, collect_texts(self.app.pages['home']))
+        for page in ('help', 'about'):
+            self.assertIn(email, collect_texts(self.app.pages[page]))
 
     def test_custom_location_merged_after_presets(self):
         self.app = self.make_app('scufe')
@@ -90,6 +98,19 @@ class UiTests(unittest.TestCase):
         self.assertEqual(merged[-1]['longitude'], 113.0)
 
     # ===== 首次须知 =====
+    def test_real_first_start_maps_main_and_disclaimer(self):
+        self.app = App(config={'edition': 'generic', 'dev_mode': False}, profile=GENERIC_PROFILE)
+        visible = []
+        def probe():
+            notices = [w for w in self.app.winfo_children() if isinstance(w, tk.Toplevel)]
+            visible.append(bool(self.app.winfo_viewable() and notices and notices[0].winfo_viewable()))
+            for window in notices:
+                window.destroy()
+            self.app.after(1, self.app.quit)
+        self.app.after(500, probe)
+        self.app.mainloop()
+        self.assertEqual(visible, [True])
+
     def test_disclaimer_needed_when_not_accepted(self):
         self.app = self.make_app('scufe', config_extra={'dev_mode': False})
         self.assertTrue(self.app.disclaimer_needed())

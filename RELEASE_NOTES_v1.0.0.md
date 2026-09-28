@@ -1,6 +1,6 @@
-# CxSign v1.0.0 Release Notes（草案，尚未发布）
+# CxSign v1.0.0
 
-计划中的首个版本，当前仅作 Private 验收准备，尚未发布 Release。CxSign 是一个面向山西财经大学、同时支持其他学校自定义地点的学习通位置签到桌面工具。
+CxSign 首个公开版本。CxSign 是一个面向山西财经大学、同时支持其他学校自定义地点的学习通位置签到桌面工具。
 
 ## 本次发布包含
 
@@ -29,3 +29,14 @@
 ## 使用
 
 解压后双击 `CxSign.exe` 启动。首次启动会展示《用户须知》，按引导完成账号与地点配置即可使用。详见包内 `README.md` 或仓库 `docs/USER_GUIDE.md`。
+
+## 隐私与反馈
+
+账号和配置以明文保存在用户本机；凭据仅用于向学习通发起必要请求，不发送给开发者后台。请勿分享包含个人配置的程序目录。
+
+- [GitHub Issues](https://github.com/Xiaotian69/CampusSign/issues)
+- Email：[andyzhao722@gmail.com](mailto:andyzhao722@gmail.com)
+
+反馈时不要发送账号、密码、Cookie、Token、学号或私人配置，截图请遮挡个人信息。
+
+如果 CxSign 对你有帮助，欢迎点一个 Star ⭐。

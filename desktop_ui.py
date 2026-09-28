@@ -97,7 +97,8 @@ class App(tk.Tk):
         self.show_page('home')
         self.after(100, self.poll)
         self.protocol('WM_DELETE_WINDOW', self.close)
-        self.after_idle(self._ensure_disclaimer)
+        # Allow initial window mapping to finish before a modal nested wait.
+        self.after(100, self._ensure_disclaimer)
 
     # ================= 样式与外壳 =================
     def _build_style(self):
@@ -195,7 +196,9 @@ class App(tk.Tk):
         tk.Label(hero, text=app_config.APP_NAME, bg=CARD, fg=TEXT, font=(FONT, 28, 'bold')).pack(anchor='w', padx=24, pady=(24, 2))
         tk.Label(hero, text=f"学习通位置签到 · {self.profile.get('display_name', '')} · v{app_config.APP_VERSION}",
                  bg=CARD, fg=MUTED, font=(FONT, 11)).pack(anchor='w', padx=24)
-        tk.Label(hero, text='面向山西财经大学，同时支持自定义地点的学习通位置签到桌面工具。',
+        description = ('面向山西财经大学，同时支持自定义地点的学习通位置签到桌面工具。'
+                       if self.edition == 'scufe' else '支持自定义学校地点的学习通位置签到桌面工具。')
+        tk.Label(hero, text=description,
                  bg=CARD, fg=TEXT, font=(FONT, 10), wraplength=700).pack(anchor='w', padx=24, pady=(10, 24))
 
         grid = self._card(page, pady=(16, 0))
@@ -349,6 +352,10 @@ class App(tk.Tk):
     def _build_help(self, parent):
         page = tk.Frame(parent, bg=CARD)
         self._page_title(page, '帮助', '根据当前程序真实功能整理的简明使用说明。')
+        feedback = tk.Frame(page, bg=CARD)
+        feedback.pack(anchor='w', pady=(0, 6))
+        ttk.Button(feedback, text='GitHub Issues', command=lambda: webbrowser.open(app_config.ISSUES_URL)).pack(side='left')
+        ttk.Button(feedback, text=app_config.CONTACT_EMAIL, command=lambda: webbrowser.open('mailto:' + app_config.CONTACT_EMAIL)).pack(side='left', padx=8)
         steps = [
             ('第一次使用', '首次启动会展示《用户须知》，点击「我已阅读并理解」进入主程序。'),
             ('填写账号', '在「签到」页点击「添加 / 更新账号」，输入学习通账号与密码（手机号登录时学校 ID 留空）。账号仅保存在本机。'),
@@ -357,7 +364,7 @@ class App(tk.Tk):
             ('开始签到', '在「签到」页输入完整课程名、选择账号，点击「查询并签到」；「仅查询」不会提交签到。'),
             ('判断签到成功', '结果列显示「签到成功」即表示已提交并复查通过；请以学习通内实际状态为准。'),
             ('常见错误', '网络失败会提示检查网络；登录失败请核对账号密码；地点不匹配请核对地点名称与坐标。'),
-            ('反馈问题', '请在 GitHub Issues 提交问题，提交前遮挡账号等隐私信息。'),
+            ('反馈问题', '请勿发送账号、密码、Cookie、Token、学号或私人配置；截图请遮挡个人信息。'),
             ('更新', '前往 GitHub Releases 下载新版本，或从源码运行 git pull 更新。'),
         ]
         for title, body in steps:
@@ -392,6 +399,7 @@ class App(tk.Tk):
         links = [
             ('GitHub 仓库', app_config.REPO_URL),
             ('问题反馈 / Issues', app_config.ISSUES_URL),
+            (app_config.CONTACT_EMAIL, 'mailto:' + app_config.CONTACT_EMAIL),
         ]
         for label, url in links:
             ttk.Button(page, text=label, command=lambda u=url: webbrowser.open(u)).pack(anchor='w', pady=2)
