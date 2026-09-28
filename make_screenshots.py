@@ -1,5 +1,6 @@
 """生成净化截图（仅使用占位/模拟数据，不含任何真实账号、密码、课程）。"""
 from pathlib import Path
+from unittest.mock import patch
 
 import app_config
 from desktop_ui import App
@@ -10,7 +11,10 @@ OUT = ROOT / 'screenshots'
 
 def make_app(edition):
     profile = app_config.load_profile(edition)
-    app = App(config={'edition': edition, 'dev_mode': True}, profile=profile)
+    # Isolate all local configuration before construction, including locations
+    # and previous results; replacing accounts afterwards is insufficient.
+    with patch('desktop_ui.read_json', side_effect=lambda name, default: default):
+        app = App(config={'edition': edition, 'dev_mode': True}, profile=profile)
     # 占位账号，绝不使用真实账号
     app.accounts = [{'username': '手机号', 'password': '••••••••', 'schoolid': ''}]
     app.refresh_accounts()

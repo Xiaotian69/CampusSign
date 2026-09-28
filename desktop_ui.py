@@ -341,14 +341,9 @@ class App(tk.Tk):
             ttk.Button(row, text='参与补充', command=lambda: webbrowser.open(app_config.EXAM_REPO_URL + '/issues')).pack(side='left', padx=10)
         else:
             tk.Label(self.resource_container, text='社区资源', bg=CARD, fg=TEXT, font=(FONT, 14, 'bold')).pack(anchor='w')
-            tk.Label(self.resource_container, text='以下为社区贡献的校园资源，与 CxSign 通用版无绑定关系。',
+            tk.Label(self.resource_container, text='通用版不预置学校专属资源，可通过项目社区分享学习资源建议。',
                      bg=CARD, fg=MUTED, font=(FONT, 10)).pack(anchor='w', pady=(6, 12))
-            card = self._card(self.resource_container, pady=0)
-            inner = tk.Frame(card, bg=CARD)
-            inner.pack(fill='x', padx=22, pady=20)
-            tk.Label(inner, text='山西财经大学资源库', bg=CARD, fg=TEXT, font=(FONT, 12, 'bold')).pack(anchor='w')
-            tk.Label(inner, text='山西财经大学历年期末资料（社区贡献）', bg=CARD, fg=MUTED, font=(FONT, 10)).pack(anchor='w', pady=(4, 12))
-            ttk.Button(inner, text='打开', command=lambda: webbrowser.open(app_config.EXAM_REPO_URL)).pack(anchor='w')
+            ttk.Button(self.resource_container, text='项目社区', command=lambda: webbrowser.open(app_config.ISSUES_URL)).pack(anchor='w')
 
     # ---- 帮助页 ----
     def _build_help(self, parent):

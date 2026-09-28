@@ -196,8 +196,17 @@ class UiTests(unittest.TestCase):
         texts = collect_texts(self.app.pages['resources'])
         self.assertIn('社区资源', texts)
         self.assertNotIn('山西财经大学历年期末资料', texts)
+        self.assertFalse(any('山西财经大学' in text for text in texts))
 
     # ===== 窗口适配 =====
+    def test_screenshot_app_does_not_read_local_preferences(self):
+        from make_screenshots import make_app
+        self.settings['last_result'] = 'PRIVATE_RESULT_SENTINEL'
+        self.app = make_app('generic')
+        self.assertEqual(self.app.preferences, {})
+        self.assertEqual(self.app.last_result, '')
+        self.assertEqual(self.app.locations, [])
+
     def test_controls_fit_minimum_window_size(self):
         self.app = self.make_app('scufe')
         self.app.show_page('sign')
