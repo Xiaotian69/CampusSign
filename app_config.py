@@ -6,7 +6,7 @@
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+from paths import resource_root, data_root
 
 # ===== 品牌信息 =====
 APP_NAME = 'CxSign'
@@ -23,9 +23,9 @@ DEFAULT_EDITION = 'scufe'
 DEFAULT_CONFIG = {'edition': DEFAULT_EDITION, 'dev_mode': False}
 
 
-def load_json_file(name, default):
-    """读取项目根目录下的 JSON 文件，缺失或损坏时回退到默认值。"""
-    path = ROOT / name
+def load_json_file(path, default):
+    """读取指定路径的 JSON 文件，缺失或损坏时回退到默认值。"""
+    path = Path(path)
     if not path.exists():
         return default
     try:
@@ -37,7 +37,7 @@ def load_json_file(name, default):
 def load_config():
     """读取本地运行配置（edition、dev_mode），缺省时使用安全默认值。"""
     config = dict(DEFAULT_CONFIG)
-    config.update(load_json_file('config.json', {}))
+    config.update(load_json_file(data_root() / 'config.json', {}))
     if config.get('edition') not in SUPPORTED_EDITIONS:
         config['edition'] = DEFAULT_EDITION
     return config
@@ -47,7 +47,7 @@ def load_profile(edition):
     """读取指定 Edition 的档案，返回其预设地点与显示名。"""
     if edition not in SUPPORTED_EDITIONS:
         edition = DEFAULT_EDITION
-    profile = load_json_file(f'profiles/{edition}.json', {})
+    profile = load_json_file(resource_root() / 'profiles' / f'{edition}.json', {})
     profile.setdefault('key', edition)
     profile.setdefault('display_name', edition)
     profile.setdefault('display_name_zh', edition)

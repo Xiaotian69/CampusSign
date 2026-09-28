@@ -4,6 +4,7 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+.venv-build/
 
 # 本地私有配置（含账号密码、偏好，绝不入库）
 user.json
@@ -19,13 +20,17 @@ logs/
 # 构建与打包产物
 build/
 dist/
-*.spec
+release/
 *.exe
+*.manifest
 
 # 缓存与临时
 *.tmp
 .DS_Store
 Thumbs.db
+
+# 内部审计报告（本地记录，不入库）
+*审计报告*.md
 
 # IDE
 .idea/

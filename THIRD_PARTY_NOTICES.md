@@ -4,9 +4,9 @@
 
 | 依赖 | 版本 | 用途 | 许可证 |
 | --- | --- | --- | --- |
-| [aiohttp](https://github.com/aio-libs/aiohttp) | 3.7.4.post0 | 异步 HTTP 客户端 | Apache License 2.0 |
-| [lxml](https://lxml.de/) | 4.6.2 | HTML/XML 解析 | BSD-3-Clause |
-| [beautifulsoup4](https://www.crummy.com/software/BeautifulSoup/) | 4.9.3 | HTML 解析封装 | MIT License |
+| [aiohttp](https://github.com/aio-libs/aiohttp) | 3.14.3 | 异步 HTTP 客户端 | Apache License 2.0 |
+| [lxml](https://lxml.de/) | 6.1.3 | HTML/XML 解析 | BSD-3-Clause |
+| [beautifulsoup4](https://www.crummy.com/software/BeautifulSoup/) | 4.15.0 | HTML 解析封装 | MIT License |
 
 ## 说明
 

@@ -12,6 +12,16 @@ CxSign 是一个第三方开源的图形界面签到工具。只需输入课程�
 - 📚 **山财学习资料**：内置山西财经大学历年期末资料入口
 - ⭐ **GitHub 开源**：代码、界面、配置体系与文档由本项目维护
 
+## 界面预览
+
+| SCUFE Edition 首页 | 地点管理 |
+| --- | --- |
+| ![CxSign SCUFE 首页](screenshots/home_scufe.png) | ![CxSign 地点管理](screenshots/places_scufe.png) |
+
+| 学习资料入口 | Generic Edition 首页 |
+| --- | --- |
+| ![CxSign 学习资料](screenshots/resources_scufe.png) | ![CxSign Generic 首页](screenshots/home_generic.png) |
+
 ---
 
 ## 目录
@@ -145,6 +155,7 @@ CxSign 是一个第三方开源的图形界面签到工具。只需输入课程�
 CxSign/
 ├─ desktop_core.py          # 签到核心（登录、课程、活动、地点、签到、结果）
 ├─ protocol.py              # 学习通平台协议常量（接口地址、请求字段、UA）
+├─ paths.py                 # 资源目录与数据目录定位（源码/打包兼容）
 ├─ desktop_ui.py            # 桌面界面（导航、须知、各页面）
 ├─ app_config.py            # 品牌信息与 Edition 档案加载
 ├─ disclaimer.py            # 《用户须知》文案
@@ -155,11 +166,17 @@ CxSign/
 │  ├─ USER_GUIDE.md         # 完整使用教程
 │  ├─ PRIVACY.md            # 隐私说明
 │  └─ DISCLAIMER.md         # 免责声明
+├─ screenshots/             # 界面预览截图
 ├─ CORE_BEHAVIOR_SPEC.md    # 核心行为规格
 ├─ config.example.json      # 运行配置模板（edition / dev_mode）
 ├─ user.example.json        # 账号配置模板
 ├─ test_desktop.py          # 签到核心回归测试
 ├─ test_desktop_ui.py       # 界面离线集成测试
+├─ CxSign.spec              # PyInstaller 打包规格
+├─ build_release.py         # 发行包构建脚本
+├─ CHANGELOG.md             # 更新日志
+├─ CONTRIBUTING.md          # 贡献指南
+├─ SECURITY.md              # 安全说明
 ├─ LICENSE                  # MIT
 ├─ THIRD_PARTY_NOTICES.md   # 第三方组件许可证
 ├─ requirements.txt

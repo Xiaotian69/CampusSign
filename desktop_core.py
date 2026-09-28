@@ -16,8 +16,7 @@ from protocol import (
     MOBILE_HEADERS, SIGN_CLIENT_IP, SIGN_ADDRESS, SIGN_APP_TYPE, SIGN_SUBMIT,
     LOCATION_ACTIVITY_OTHER_ID,
 )
-
-ROOT = Path(__file__).resolve().parent
+from paths import data_root
 
 # 山西财经大学坞城校区预设地点（百度 BD-09，经度在前、纬度在后）。
 # 立信楼已通过 100 米范围实测；修德楼为参考点，具体活动范围以学习通为准。
@@ -39,14 +38,14 @@ DEFAULT_LOCATIONS = [
 # ================= 本地 JSON 读写 =================
 
 def read_json(name, default):
-    """读取项目根目录下的 JSON 文件，缺失时回退默认值。"""
-    path = ROOT / name
+    """读取数据目录下的 JSON 文件，缺失时回退默认值。"""
+    path = data_root() / name
     return json.loads(path.read_text(encoding='utf-8')) if path.exists() else default
 
 
 def write_json(name, value):
     """原子写入 JSON：先写临时文件再替换，避免写坏原文件。"""
-    path = ROOT / name
+    path = data_root() / name
     temporary = path.with_suffix('.tmp')
     temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding='utf-8')
     temporary.replace(path)
