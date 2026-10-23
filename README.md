@@ -49,8 +49,8 @@ CxSign 是一个第三方开源的图形界面签到工具。只需输入课程�
 
 | 版本 | 说明 |
 | --- | --- |
-| [CxSign-v1.0.0-SCUFE.zip](https://github.com/Xiaotian69/CampusSign/releases/download/v1.0.0/CxSign-v1.0.0-SCUFE.zip) | 山西财经大学版，内置山财地点预设 |
-| [CxSign-v1.0.0-Generic.zip](https://github.com/Xiaotian69/CampusSign/releases/download/v1.0.0/CxSign-v1.0.0-Generic.zip) | 通用版，不含任何学校预设 |
+| [CxSign-v1.1.0-SCUFE.zip](https://github.com/Xiaotian69/CampusSign/releases/download/v1.1.0/CxSign-v1.1.0-SCUFE.zip) | 山西财经大学版，内置山财地点预设 |
+| [CxSign-v1.1.0-Generic.zip](https://github.com/Xiaotian69/CampusSign/releases/download/v1.1.0/CxSign-v1.1.0-Generic.zip) | 通用版，不含任何学校预设 |
 
 ### 如何选择版本
 

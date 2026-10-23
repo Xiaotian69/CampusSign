@@ -4,6 +4,10 @@ import sys
 import time
 from pathlib import Path
 
+from app_config import APP_VERSION
+
+from app_config import APP_VERSION
+
 ROOT = Path(__file__).resolve().parent
 RELEASE = ROOT / 'release'
 
@@ -26,8 +30,8 @@ def smoke(exe_path, edition):
 
 def main():
     results = {
-        'SCUFE': smoke(RELEASE / 'CxSign-v1.0.0-SCUFE' / 'CxSign.exe', 'SCUFE'),
-        'Generic': smoke(RELEASE / 'CxSign-v1.0.0-Generic' / 'CxSign.exe', 'Generic'),
+        'SCUFE': smoke(RELEASE / f'CxSign-v{APP_VERSION}-SCUFE' / 'CxSign.exe', 'SCUFE'),
+        'Generic': smoke(RELEASE / f'CxSign-v{APP_VERSION}-Generic' / 'CxSign.exe', 'Generic'),
     }
     print('=' * 40)
     print('冒烟测试结果：', results)

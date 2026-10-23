@@ -22,8 +22,8 @@
 在独立 Windows 虚拟环境安装运行依赖与 PyInstaller，运行 `python build_release.py`。
 同一个 `CxSign.exe` 配合不同的 edition 配置，生成：
 
-- `CxSign-v1.0.0-SCUFE.zip`
-- `CxSign-v1.0.0-Generic.zip`
+- `CxSign-v<版本>-SCUFE.zip`
+- `CxSign-v<版本>-Generic.zip`
 
 构建仅复制白名单文件，不复制用户配置；构建完成后应再次检查 ZIP 清单和内容。
 现有本地产物不代表当前代码已通过真实签到或发行验收。
