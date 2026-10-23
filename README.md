@@ -14,6 +14,10 @@ CxSign 是一个第三方开源的图形界面签到工具。只需输入课程�
 
 ## 界面预览
 
+| 签到页（刷新课程 · 下拉选择） | 地图选点（无需注册） |
+| --- | --- |
+| ![CxSign 签到页课程下拉](screenshots/sign_scufe.png) | ![CxSign 地图选点](screenshots/pick_scufe.png) |
+
 | SCUFE Edition 首页 | 地点管理 |
 | --- | --- |
 | ![CxSign SCUFE 首页](screenshots/home_scufe.png) | ![CxSign 地点管理](screenshots/places_scufe.png) |
