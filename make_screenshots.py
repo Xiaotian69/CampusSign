@@ -92,6 +92,16 @@ def main():
     capture(generic, 'home_generic.png')
     generic.show_page('places')
     capture(generic, 'places_generic.png')
+    # 仅用于截图的示例地点，不写入本地文件
+    generic.locations = [{'name': '示例大学-第一教学楼（示例）', 'longitude': 116.4039630, 'latitude': 39.9150000}]
+    generic.fixed_name.set(generic.locations[0]['name'])
+    generic.refresh_places()
+    generic.course_owners = dict(PLACEHOLDER_COURSES)
+    generic.course_picker.configure(values=list(PLACEHOLDER_COURSES))
+    generic.course.set('高等数学（示例）')
+    generic.update_course_hint()
+    generic.show_page('sign')
+    capture(generic, 'sign_generic.png')
     generic.destroy()
 
 
