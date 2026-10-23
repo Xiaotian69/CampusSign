@@ -1,6 +1,6 @@
 """CxSign 位置签到核心。
 
-本模块负责：登录、课程匹配、活动识别、地点匹配、位置签到提交与结果复核。
+本模块负责：登录、课程列表与匹配、活动识别、地点匹配、位置签到提交与结果复核。
 网络接口地址与协议固定字段统一从 ``protocol`` 导入，业务逻辑为本项目独立实现。
 """
 import asyncio
@@ -52,6 +52,19 @@ def write_json(name, value):
 
 
 # ================= 选择与校验 =================
+
+def parse_courses(body):
+    """从课程列表页面解析已加入的班级课程（跳过无班级 ID 的条目）。"""
+    soup = BeautifulSoup(body, 'lxml')
+    courses = []
+    for node in soup.select('li.course'):
+        title = node.select_one('.course-name')
+        if title and node.get('clazzid') not in (None, '0'):
+            courses.append({'class_name': title.get_text(strip=True),
+                            'class_id': node.get('clazzid'),
+                            'course_id': node.get('courseid')})
+    return courses
+
 
 def choose_course(courses, name):
     """按完整课程名精确匹配唯一课程，歧义或缺失时报错。"""
@@ -135,19 +148,14 @@ class Client:
             raise ValueError('登录失败，请核对账号密码或在学习通完成验证')
         self.uid = str(data.get('uid', ''))
 
-    async def course(self, name):
+    async def courses(self):
         async with self.session.post(COURSE_LIST_URL,
                                      data={'courseType': '1', 'courseFolderId': '0', 'courseFolderSize': '0'}) as r:
             r.raise_for_status()
-            soup = BeautifulSoup(await r.text(), 'lxml')
-        courses = []
-        for node in soup.select('li.course'):
-            title = node.select_one('.course-name')
-            if title and node.get('clazzid') not in (None, '0'):
-                courses.append({'class_name': title.get_text(strip=True),
-                                'class_id': node.get('clazzid'),
-                                'course_id': node.get('courseid')})
-        return choose_course(courses, name)
+            return parse_courses(await r.text())
+
+    async def course(self, name):
+        return choose_course(await self.courses(), name)
 
     async def activities(self, course):
         data = json.loads(await self.get(
@@ -233,6 +241,37 @@ async def run_account(account, course_name, locations, execute, emit, *, fixed_l
     except Exception as exc:
         # 异常对象完整字符串可能携带凭据，仅输出类型名。
         report('', '', f'读取失败（{type(exc).__name__}），请检查网络或稍后重试')
+
+
+async def list_courses(accounts):
+    """登录各账号读取课程列表（最多 2 个并发），只读取不提交签到。
+
+    返回 ``(courses, failures)``：``courses`` 为 ``{课程名: [账号, ...]}``，
+    按课程名排序；``failures`` 为 ``{账号: 失败原因}``，单账号失败不影响其他账号。
+    """
+    semaphore = asyncio.Semaphore(2)
+    owners, failures = {}, {}
+
+    async def task(account):
+        username = account['username']
+        async with semaphore:
+            try:
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=25),
+                                                 headers=MOBILE_HEADERS) as session:
+                    client = Client(session)
+                    await client.login(account)
+                    for course in await client.courses():
+                        names = owners.setdefault(course['class_name'], [])
+                        if username not in names:
+                            names.append(username)
+            except ValueError as exc:
+                failures[username] = str(exc)
+            except Exception as exc:
+                # 异常对象完整字符串可能携带凭据，仅输出类型名。
+                failures[username] = f'读取失败（{type(exc).__name__}），请检查网络或稍后重试'
+
+    await asyncio.gather(*(task(account) for account in accounts))
+    return dict(sorted(owners.items())), failures
 
 
 async def run_batch(accounts, course_name, locations, execute, emit, *, fixed_location=None):
