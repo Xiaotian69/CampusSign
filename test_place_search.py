@@ -46,6 +46,15 @@ class CoordinateTests(unittest.TestCase):
         self.assertAlmostEqual(lat, 39.915, places=3)
         self.assertIn('网址', note)
 
+    def test_low_zoom_url_rejected(self):
+        # 实测：14.31 级缩放下点开地点详情，中心点比立信楼偏北约 600 米。
+        url = ('https://map.baidu.com/poi/%E7%AB%8B%E4%BF%A1%E6%A5%BC/'
+               '@12533882.129426882,4524464.546560062,14.31z?uid=435b76896b6430ccbbbd638e')
+        with self.assertRaises(ValueError) as ctx:
+            parse_coordinate_text(url)
+        self.assertIn('14.31', str(ctx.exception))
+        self.assertIn('缩放级别 19', parse_coordinate_text(url.replace('14.31z', '19z'))[2])
+
     def test_bare_mercator_pair_is_recognised(self):
         lng, lat, _ = parse_coordinate_text('12529930.9,4535569.28')
         self.assertAlmostEqual(lng, 112.557, places=2)

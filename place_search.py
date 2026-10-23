@@ -92,6 +92,8 @@ _GCJ_A = 6378245.0
 _GCJ_EE = 0.00669342162296594323
 
 COORD_SYSTEMS = {'bd09': '百度 BD-09', 'gcj02': '高德 / 腾讯 GCJ-02', 'wgs84': '手机 GPS WGS-84'}
+# 百度地图网址的最低可接受缩放级别（18 级约 1 米/像素）。
+MIN_PICK_ZOOM = 18
 
 
 def bd09mc_to_bd09(x, y):
@@ -134,15 +136,21 @@ def parse_coordinate_text(text, system='bd09'):
     - 普通经纬度：按 ``system`` 指定的坐标系换算；纬度在前时自动交换。
     """
     text = (text or '').strip()
-    found = re.search(r'@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)', text)
+    found = re.search(r'@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)(?:,(\d+(?:\.\d+)?)z)?', text)
     numbers = [float(found.group(1)), float(found.group(2))] if found else \
         [float(n) for n in re.findall(r'-?\d+(?:\.\d+)?', text)]
     if len(numbers) != 2:
         raise ValueError('没有识别到坐标：请粘贴百度地图网页的完整网址，或「经度,纬度」两个数字')
     a, b = numbers
     if found or (abs(a) > 180 and abs(b) > 180):
+        # 网址记录的是地图中心点：打开地点详情时百度会平移地图给弹窗让位，
+        # 中心点与地点相差几十个像素；缩放级别越低，换算成米的误差越大。
+        zoom = float(found.group(3)) if found and found.group(3) else None
+        if zoom is not None and zoom < MIN_PICK_ZOOM:
+            raise ValueError(f'地图缩放级别 {zoom:g} 太小，坐标可能偏几百米。请把鼠标放在楼的标记上，'
+                             '用滚轮放大到最大，并让标记位于屏幕正中间，再重新复制网址。')
         lng, lat = bd09mc_to_bd09(a, b)
-        note = '已从百度地图网址识别地图中心点'
+        note = '已从百度地图网址识别地图中心点' + (f'（缩放级别 {zoom:g}）' if zoom is not None else '')
     else:
         if abs(a) <= 90 < abs(b):
             a, b = b, a
