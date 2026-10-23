@@ -18,6 +18,14 @@ class ParseTests(unittest.TestCase):
             {'name': '山西财经大学-立信楼', 'address': '山西省太原市小店区坞城路696号',
              'longitude': 112.5930636, 'latitude': 37.792118}])
 
+    def test_address_already_containing_region_is_not_repeated(self):
+        base = {'location': {'lat': 37.79, 'lng': 112.59}, 'province': '山西省', 'city': '太原市', 'area': '小店区'}
+        data = {'status': 0, 'results': [
+            dict(base, name='立信楼', address='山西省太原市小店区坞城南路696号'),
+            dict(base, name='南院', address='太原市小店区坞城路696号')]}
+        self.assertEqual([p['address'] for p in parse_place_results(data)],
+                         ['山西省太原市小店区坞城南路696号', '山西省太原市小店区坞城路696号'])
+
     def test_error_status_raises_readable_message(self):
         with self.assertRaises(ValueError) as ctx:
             parse_place_results({'status': 5, 'message': 'APP不存在，AK有误请检查再重试'})

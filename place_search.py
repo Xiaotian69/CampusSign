@@ -41,9 +41,12 @@ def parse_place_results(data):
         name = str(item.get('name') or '').strip()
         if not name or not (math.isfinite(lng) and math.isfinite(lat)):
             continue
-        region = ''.join(str(item.get(k) or '') for k in ('province', 'city', 'area'))
+        # 部分结果的 address 已含省市区，只补地址中缺少的部分，避免重复。
+        address = str(item.get('address') or '')
+        region = ''.join(part for part in (str(item.get(k) or '') for k in ('province', 'city', 'area'))
+                         if part and part not in address)
         places.append({'name': name,
-                       'address': region + str(item.get('address') or ''),
+                       'address': region + address,
                        'longitude': lng, 'latitude': lat})
     return places
 
