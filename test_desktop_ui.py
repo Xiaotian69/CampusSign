@@ -289,6 +289,27 @@ class UiTests(unittest.TestCase):
                          ('locations.local.json', [{'name': '山西财经大学-立信楼', 'longitude': 112.5930636, 'latitude': 37.792118}]))
         self.assertEqual(self.app.locations[-1]['name'], '山西财经大学-立信楼')
 
+    def test_map_pick_url_prefills_name_and_adds(self):
+        self.app = self.make_app('generic')
+        dialog = self.app.search_location()
+        dialog.coord_text.set('https://map.baidu.com/search/%E7%AB%8B%E4%BF%A1%E6%A5%BC//@12958175,4825923,19z')
+        dialog.add_picked()
+        name, lng, lat = [self.write.call_args.args[1][0][k] for k in ('name', 'longitude', 'latitude')]
+        self.assertEqual(self.write.call_args.args[0], 'locations.local.json')
+        self.assertEqual(name, '立信楼')
+        self.assertAlmostEqual(lng, 116.404, places=3)
+        self.assertAlmostEqual(lat, 39.915, places=3)
+
+    def test_map_pick_rejects_bad_text_without_saving(self):
+        self.app = self.make_app('generic')
+        dialog = self.app.search_location()
+        dialog.coord_text.set('不是坐标')
+        dialog.pick_name.set('楼')
+        self.write.reset_mock()
+        dialog.add_picked()
+        self.write.assert_not_called()
+        self.assertIn('没有识别到坐标', dialog.pick_hint.get())
+
     def test_search_error_shown_in_dialog(self):
         self.app = self.make_app('generic')
         dialog = self.app.search_location()

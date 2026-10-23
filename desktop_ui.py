@@ -10,14 +10,24 @@ import time
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from types import SimpleNamespace
+from urllib.parse import unquote
+import re
 import webbrowser
 
 import app_config
 import disclaimer
 from desktop_core import read_json, write_json, validate_location, run_batch, list_courses
-from place_search import search_places
+from place_search import search_places, parse_coordinate_text, COORD_SYSTEMS
 
 BAIDU_AK_URL = 'https://lbsyun.baidu.com/apiconsole/key'
+BAIDU_MAP_URL = 'https://map.baidu.com/'
+MAP_PICK_TUTORIAL = (
+    '1. 点「打开百度地图」，在网页左上角搜索「学校名 + 楼名」，例如「山西财经大学 立信楼」。\n'
+    '2. 在左侧结果里点击要的那栋楼，地图会把它移到正中间。点完不要再拖动地图，否则坐标会偏。\n'
+    '3. 复制浏览器地址栏里的完整网址（带 @ 的那一串），回到这里点「从剪贴板粘贴并识别」。\n'
+    '4. 确认保存名称，点「添加到地点库」。\n'
+    '已经有经纬度（如手机定位、其他地图）时，也可以直接粘贴「经度,纬度」，并选好坐标类型。'
+)
 
 
 # ===== 主题色（浅色现代风） =====
@@ -378,7 +388,7 @@ class App(tk.Tk):
         steps = [
             ('第一次使用', '首次启动会展示《用户须知》，点击「我已阅读并理解」进入主程序。'),
             ('填写账号', '在「签到」页点击「添加 / 更新账号」，输入学习通账号与密码（手机号登录时学校 ID 留空）。账号仅保存在本机。'),
-            ('添加地点', '在「地点」页点击「搜索添加地点」，填入百度地图 AK 后按关键词搜索并添加；也可点击「添加 / 更新地点」手动填写完整地点名称与百度经纬度。'),
+            ('添加地点', '在「地点」页点击「搜索添加地点」：「地图选点」页无需注册，在百度地图网页搜到楼后复制网址粘贴即可识别坐标；有百度 AK 也可用「关键词搜索」页。也可点击「添加 / 更新地点」手动填写完整地点名称与百度经纬度。'),
             ('选择签到地点', '在「签到」页选择「固定位置」并挑选地点，或选择「按指定地点匹配」。'),
             ('开始签到', '在「签到」页选择账号后点击「刷新课程」读取课程列表，下拉选择课程（可输入关键字筛选，也可手动输入完整课程名），点击「查询并签到」；「仅查询」不会提交签到。'),
             ('判断签到成功', '结果列显示「签到成功」即表示已提交并复查通过；请以学习通内实际状态为准。'),
@@ -624,7 +634,7 @@ class App(tk.Tk):
         self._form('添加 / 更新地点', [('完整地点名称（与签到页面一致）', False), ('百度经度', False), ('百度纬度', False)], save)
 
     def search_location(self):
-        """百度地图关键词检索地点，选中结果后可改名并加入地点库。"""
+        """搜索添加地点：地图选点（粘贴百度地图网址，无需注册）或百度 AK 关键词检索。"""
         if self.search_dialog is not None and self.search_dialog.window.winfo_exists():
             self.search_dialog.window.lift()
             return self.search_dialog
@@ -632,14 +642,89 @@ class App(tk.Tk):
         window.title('搜索添加地点')
         window.transient(self)
         window.configure(bg=CARD)
-        window.geometry('760x600')
-        box = tk.Frame(window, bg=CARD)
-        box.pack(fill='both', expand=True, padx=20, pady=16)
-        d = SimpleNamespace(window=window, results=[],
+        window.geometry('780x680')
+        outer = tk.Frame(window, bg=CARD)
+        outer.pack(fill='both', expand=True, padx=20, pady=16)
+        footer = tk.Frame(outer, bg=CARD)
+        footer.pack(side='bottom', fill='x', pady=(12, 0))
+        ttk.Button(footer, text='关闭', command=window.destroy).pack(side='right')
+        notebook = ttk.Notebook(outer)
+        notebook.pack(fill='both', expand=True)
+        pick = tk.Frame(notebook, bg=CARD, padx=16, pady=12)
+        box = tk.Frame(notebook, bg=CARD, padx=16, pady=12)
+        notebook.add(pick, text='  地图选点（无需注册）  ')
+        notebook.add(box, text='  关键词搜索（需百度 AK）  ')
+        system_labels = {label: key for key, label in COORD_SYSTEMS.items()}
+        d = SimpleNamespace(window=window, notebook=notebook, results=[], picked=None,
                             ak=tk.StringVar(value=self.preferences.get('baidu_ak', '')),
                             region=tk.StringVar(value=self.preferences.get('place_region', '')),
-                            keyword=tk.StringVar(), name=tk.StringVar(), hint=tk.StringVar())
+                            keyword=tk.StringVar(), name=tk.StringVar(), hint=tk.StringVar(),
+                            coord_text=tk.StringVar(), coord_system=tk.StringVar(value=COORD_SYSTEMS['bd09']),
+                            pick_name=tk.StringVar(), pick_hint=tk.StringVar())
 
+        # ---- 地图选点 ----
+        tk.Label(pick, text='操作步骤', bg=CARD, fg=TEXT, font=(FONT, 11, 'bold')).pack(anchor='w')
+        tk.Label(pick, text=MAP_PICK_TUTORIAL, bg=CARD, fg=TEXT, font=(FONT, 10), wraplength=700,
+                 justify='left').pack(anchor='w', pady=(4, 8))
+        tools = tk.Frame(pick, bg=CARD)
+        tools.pack(fill='x')
+        ttk.Button(tools, text='打开百度地图', style='Accent.TButton',
+                   command=lambda: webbrowser.open(BAIDU_MAP_URL)).pack(side='left')
+        ttk.Button(tools, text='从剪贴板粘贴并识别', command=lambda: d.paste()).pack(side='left', padx=8)
+        tk.Label(pick, text='网址或坐标', bg=CARD, fg=TEXT).pack(anchor='w', pady=(12, 4))
+        coord_entry = ttk.Entry(pick, textvariable=d.coord_text)
+        coord_entry.pack(fill='x')
+        coord_entry.bind('<Return>', lambda event: d.parse())
+        system_row = tk.Frame(pick, bg=CARD)
+        system_row.pack(fill='x', pady=(8, 0))
+        tk.Label(system_row, text='坐标类型（粘贴网址时自动识别）', bg=CARD, fg=TEXT).pack(side='left')
+        ttk.Combobox(system_row, textvariable=d.coord_system, values=list(system_labels), state='readonly',
+                     width=18).pack(side='left', padx=8)
+        ttk.Button(system_row, text='识别坐标', command=lambda: d.parse()).pack(side='left')
+        tk.Label(pick, textvariable=d.pick_hint, bg=CARD, fg=MUTED, font=(FONT, 9), wraplength=700,
+                 justify='left').pack(anchor='w', pady=(8, 0))
+        tk.Label(pick, text='保存名称', bg=CARD, fg=TEXT).pack(anchor='w', pady=(10, 4))
+        ttk.Entry(pick, textvariable=d.pick_name).pack(fill='x')
+        tk.Label(pick, text='固定位置模式可任意命名；「按指定地点匹配」模式需改成与签到页面显示一致的完整地点名称。',
+                 bg=CARD, fg=MUTED, font=(FONT, 9), wraplength=700, justify='left').pack(anchor='w', pady=(4, 0))
+        ttk.Button(pick, text='添加到地点库', style='Accent.TButton', command=lambda: d.add_picked()).pack(anchor='e', pady=(10, 0))
+
+        def parse():
+            text = d.coord_text.get()
+            try:
+                lng, lat, note = parse_coordinate_text(text, system_labels.get(d.coord_system.get(), 'bd09'))
+                validate_location('坐标', lng, lat)
+            except ValueError as exc:
+                d.picked = None
+                d.pick_hint.set(str(exc))
+                return False
+            d.picked = (lng, lat)
+            keyword = re.search(r'/(?:search|poi)/([^/@?#]+)', text)
+            if keyword and not d.pick_name.get().strip():
+                d.pick_name.set(unquote(keyword.group(1)).strip())
+            d.pick_hint.set(f'{note}：百度经度 {lng:.7f}，纬度 {lat:.7f}。确认名称后点「添加到地点库」。')
+            return True
+
+        def paste():
+            try:
+                d.coord_text.set(self.clipboard_get())
+            except tk.TclError:
+                d.pick_hint.set('剪贴板里没有文字，请先在浏览器地址栏复制网址。')
+                return
+            parse()
+
+        def add_picked():
+            if not parse():
+                return
+            try:
+                p = validate_location(d.pick_name.get(), *d.picked)
+                self._save_custom_location(p)
+            except (ValueError, OSError) as exc:
+                messagebox.showerror('未保存', str(exc), parent=window)
+                return
+            d.pick_hint.set('已添加到地点库：' + p['name'])
+
+        # ---- 关键词搜索 ----
         form = tk.Frame(box, bg=CARD)
         form.pack(fill='x')
         tk.Label(form, text='百度地图 AK', bg=CARD, fg=TEXT).grid(row=0, column=0, sticky='w')
@@ -657,7 +742,7 @@ class App(tk.Tk):
         tk.Label(box, textvariable=d.hint, bg=CARD, fg=MUTED, font=(FONT, 9), wraplength=700,
                  justify='left').pack(anchor='w', pady=(6, 6))
 
-        d.tree = ttk.Treeview(box, columns=('name', 'address', 'coord'), show='headings', height=8, selectmode='browse')
+        d.tree = ttk.Treeview(box, columns=('name', 'address', 'coord'), show='headings', height=7, selectmode='browse')
         for col, title, width in [('name', '名称', 220), ('address', '地址', 300), ('coord', '百度经纬度', 180)]:
             d.tree.heading(col, text=title)
             d.tree.column(col, width=width, minwidth=60)
@@ -667,10 +752,7 @@ class App(tk.Tk):
         ttk.Entry(box, textvariable=d.name).pack(fill='x')
         tk.Label(box, text='固定位置模式可任意命名；「按指定地点匹配」模式需改成与签到页面显示一致的完整地点名称。',
                  bg=CARD, fg=MUTED, font=(FONT, 9), wraplength=700, justify='left').pack(anchor='w', pady=(4, 0))
-        footer = tk.Frame(box, bg=CARD)
-        footer.pack(fill='x', pady=(12, 0))
-        ttk.Button(footer, text='关闭', command=window.destroy).pack(side='right')
-        ttk.Button(footer, text='添加到地点库', style='Accent.TButton', command=lambda: d.add()).pack(side='right', padx=8)
+        ttk.Button(box, text='添加到地点库', style='Accent.TButton', command=lambda: d.add()).pack(anchor='e', pady=(10, 0))
 
         def search():
             keyword, region, ak = d.keyword.get(), d.region.get(), d.ak.get()
@@ -721,8 +803,9 @@ class App(tk.Tk):
 
         d.tree.bind('<<TreeviewSelect>>', on_select)
         d.search, d.done, d.add = search, done, add
+        d.parse, d.paste, d.add_picked = parse, paste, add_picked
         self.search_dialog = d
-        keyword_entry.focus_set()
+        coord_entry.focus_set()
         return d
 
     def remove_location(self):
