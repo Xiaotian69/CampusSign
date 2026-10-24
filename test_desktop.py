@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch, AsyncMock
-from desktop_core import run_batch, Client, DEFAULT_LOCATIONS
+from desktop_core import run_batch, list_courses, parse_courses, Client, DEFAULT_LOCATIONS
 from desktop_core import choose_course, choose_location, validate_location, classify_result, verified_page
 
 
@@ -204,6 +204,41 @@ class BatchTests(unittest.IsolatedAsyncioTestCase):
             await run_batch([{'username': 'good'}], 'test_0', [{'name': '测试楼', 'longitude': 112, 'latitude': 37}], False, rows.append)
         self.assertEqual(calls, [])
         self.assertIn('可签到', rows[0][-1])
+
+
+class CourseListTests(unittest.IsolatedAsyncioTestCase):
+    def test_parse_courses_skips_entries_without_class(self):
+        html = ('<ul><li class="course" clazzid="11" courseid="1"><span class="course-name">高等数学</span></li>'
+                '<li class="course" clazzid="0" courseid="2"><span class="course-name">未分班</span></li>'
+                '<li class="course" clazzid="13" courseid="3"></li></ul>')
+        self.assertEqual(parse_courses(html), [{'class_name': '高等数学', 'class_id': '11', 'course_id': '1'}])
+
+    async def test_list_courses_merges_accounts_and_isolates_failures(self):
+        catalog = {'a': ['线性代数', '高等数学'], 'b': ['高等数学', '概率论']}
+        calls = []
+        class FakeClient:
+            def __init__(self, session): pass
+            async def login(self, account):
+                self.username = account['username']
+                if self.username == 'bad': raise ValueError('登录失败')
+            async def courses(self): return [{'class_name': n} for n in catalog[self.username]]
+            async def sign(self, *args): calls.append(args)
+        with patch('desktop_core.Client', FakeClient):
+            owners, failures = await list_courses([{'username': 'a'}, {'username': 'bad'}, {'username': 'b'}])
+        self.assertEqual(list(owners), sorted(['线性代数', '高等数学', '概率论']))
+        self.assertEqual(owners['高等数学'], ['a', 'b'])
+        self.assertEqual(failures, {'bad': '登录失败'})
+        self.assertEqual(calls, [])
+
+    async def test_list_courses_hides_exception_details(self):
+        class FakeClient:
+            def __init__(self, session): pass
+            async def login(self, account): raise RuntimeError('https://x/?pwd=secret')
+        with patch('desktop_core.Client', FakeClient):
+            owners, failures = await list_courses([{'username': 'a'}])
+        self.assertEqual(owners, {})
+        self.assertNotIn('secret', failures['a'])
+        self.assertIn('RuntimeError', failures['a'])
 
 
 if __name__ == '__main__': unittest.main()

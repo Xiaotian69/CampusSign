@@ -9,14 +9,30 @@ import threading
 import time
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
+from types import SimpleNamespace
+from urllib.parse import unquote
+import re
 import webbrowser
 import sys
 
 import app_config
 import disclaimer
 from course_ui import CoursePage
-from desktop_core import read_json, write_json, validate_location, run_batch
+from desktop_core import read_json, write_json, validate_location, run_batch, list_courses
+from place_search import search_places, parse_coordinate_text, COORD_SYSTEMS
 from window_utils import place_in_work_area
+
+BAIDU_AK_URL = 'https://lbsyun.baidu.com/apiconsole/key'
+BAIDU_MAP_URL = 'https://map.baidu.com/'
+MAP_PICK_TUTORIAL = (
+    '1. 点「打开百度地图」，在网页左上角搜索「学校名 + 楼名」，例如「山西财经大学 立信楼」。\n'
+    '2. 在左侧结果里点击要的那栋楼，地图上会出现它的红色标记。\n'
+    '3. 把鼠标放在红色标记上，滚动鼠标滚轮放大到最大（比例尺显示 10 米或 20 米）。\n'
+    '4. 拖动地图，让红色标记位于整个浏览器窗口的正中间（网址记录的是地图中心点，不是标记位置）。\n'
+    '5. 复制浏览器地址栏里的完整网址（带 @ 的那一串），回到这里点「从剪贴板粘贴并识别」。\n'
+    '6. 确认保存名称，点「添加到地点库」。放大不够时软件会提示重新复制。\n'
+    '已经有经纬度（如手机定位、其他地图）时，也可以直接粘贴「经度,纬度」，并选好坐标类型。'
+)
 
 
 # ===== 主题色（浅色现代风） =====
@@ -34,6 +50,25 @@ FONT = 'Microsoft YaHei UI'
 
 # ===== 更新日志（与 CHANGELOG.md 保持一致） =====
 CHANGELOG = [
+    {
+        'version': 'v1.1.0',
+        'date': '2026-10',
+        'sections': [
+            ('新增', [
+                '刷新课程：自动读取选中账号已加入的课程，下拉选择、关键字筛选',
+                '地图选点（无需注册）：粘贴百度地图网页网址即可识别楼的坐标',
+                '关键词搜索：填入自己的百度地图 AK 后按城市 + 关键词检索地点',
+                '支持粘贴「经度,纬度」，可选百度 / 高德·腾讯 / 手机 GPS 坐标类型',
+            ]),
+            ('优化', [
+                '课程名称改为可编辑下拉框，仍可手动输入',
+                '帮助页补充新功能说明',
+            ]),
+            ('修复', [
+                '地点检索结果中省市区重复显示',
+            ]),
+        ],
+    },
     {
         'version': 'v1.0.0',
         'date': '2026-09',
@@ -88,6 +123,10 @@ class App(tk.Tk):
         self.preferences = read_json('ui.local.json', {})
 
         self.messages = queue.Queue()
+        self.callbacks = queue.Queue()
+        self.course_owners = dict(self.preferences.get('course_list') or {})
+        self.course_failures = {}
+        self.search_dialog = None
         self.busy = False
         self._current_rows = []
         self.last_result = self.preferences.get('last_result', '')
@@ -244,17 +283,26 @@ class App(tk.Tk):
     # ---- 签到页 ----
     def _build_sign(self, parent):
         page = tk.Frame(parent, bg=CARD)
-        self._page_title(page, '签到', '输入课程名，选择账号和位置模式，提交后逐项核对结果。')
+        self._page_title(page, '签到', '选择或输入课程名，选择账号和位置模式，提交后逐项核对结果。')
 
         row = tk.Frame(page, bg=CARD)
         row.pack(fill='x')
         tk.Label(row, text='课程名称', bg=CARD, fg=TEXT).pack(side='left')
         self.course = tk.StringVar(value=self.preferences.get('course', ''))
-        ttk.Entry(row, textvariable=self.course, width=36).pack(side='left', padx=12)
+        self.course_picker = ttk.Combobox(row, textvariable=self.course, width=30, values=list(self.course_owners))
+        self.course_picker.pack(side='left', padx=(12, 4))
+        self.course_picker.bind('<KeyRelease>', self.filter_courses)
+        self.course_picker.bind('<<ComboboxSelected>>', self.update_course_hint)
+        self.course_refresh = ttk.Button(row, text='刷新课程', command=self.refresh_courses)
+        self.course_refresh.pack(side='left', padx=4)
         self.scan = ttk.Button(row, text='仅查询', command=lambda: self.start(False))
         self.scan.pack(side='left', padx=4)
         self.submit = ttk.Button(row, text='查询并签到', style='Accent.TButton', command=lambda: self.start(True))
         self.submit.pack(side='left', padx=4)
+        self.course_hint = tk.StringVar()
+        tk.Label(page, textvariable=self.course_hint, bg=CARD, fg=MUTED, font=(FONT, 9), wraplength=760,
+                 justify='left').pack(anchor='w', pady=(4, 0))
+        self.update_course_hint()
 
         mode_row = tk.Frame(page, bg=CARD)
         mode_row.pack(fill='x', pady=(16, 4))
@@ -315,6 +363,8 @@ class App(tk.Tk):
         place_buttons.pack(fill='x', pady=10)
         self.place_add = ttk.Button(place_buttons, text='添加 / 更新地点', command=self.add_location)
         self.place_add.pack(side='left')
+        self.place_search = ttk.Button(place_buttons, text='搜索添加地点', command=self.search_location)
+        self.place_search.pack(side='left', padx=8)
         self.place_remove = ttk.Button(place_buttons, text='删除选中地点', command=self.remove_location)
         self.place_remove.pack(side='left', padx=8)
         ttk.Button(place_buttons, text='导出地点', command=self.export_locations).pack(side='left', padx=8)
@@ -363,9 +413,9 @@ class App(tk.Tk):
         steps = [
             ('第一次使用', '首次启动会展示《用户须知》，点击「我已阅读并理解」进入主程序。'),
             ('填写账号', '在「签到」页点击「添加 / 更新账号」，输入学习通账号与密码（手机号登录时学校 ID 留空）。账号仅保存在本机。'),
-            ('添加地点', '在「地点」页点击「添加 / 更新地点」，填写完整地点名称与百度经纬度。'),
+            ('添加地点', '在「地点」页点击「搜索添加地点」：「地图选点」页无需注册，在百度地图网页搜到楼后复制网址粘贴即可识别坐标；有百度 AK 也可用「关键词搜索」页。也可点击「添加 / 更新地点」手动填写完整地点名称与百度经纬度。'),
             ('选择签到地点', '在「签到」页选择「固定位置」并挑选地点，或选择「按指定地点匹配」。'),
-            ('开始签到', '在「签到」页输入完整课程名、选择账号，点击「查询并签到」；「仅查询」不会提交签到。'),
+            ('开始签到', '在「签到」页选择账号后点击「刷新课程」读取课程列表，下拉选择课程（可输入关键字筛选，也可手动输入完整课程名），点击「查询并签到」；「仅查询」不会提交签到。'),
             ('判断签到成功', '结果列显示「签到成功」即表示已提交并复查通过；请以学习通内实际状态为准。'),
             ('常见错误', '网络失败会提示检查网络；登录失败请核对账号密码；地点不匹配请核对地点名称与坐标。'),
             ('反馈问题', '请勿发送账号、密码、Cookie、Token、学号或私人配置；截图请遮挡个人信息。'),
@@ -536,6 +586,60 @@ class App(tk.Tk):
         self.accounts = new
         self.refresh_accounts()
 
+    # ================= 课程列表 =================
+    def refresh_courses(self):
+        """用选中账号读取课程列表；只读取，不提交签到。"""
+        if self.busy:
+            return
+        accounts = [dict(self.accounts[i]) for i in self.account_list.curselection()]
+        if not accounts:
+            messagebox.showinfo('需要补充', '请先选择至少一个账号，再刷新课程列表。')
+            return
+        self.set_busy(True)
+        self.status.set(f'正在读取 {len(accounts)} 个账号的课程列表…')
+        self._background(lambda: asyncio.run(list_courses(accounts)), self._courses_loaded)
+
+    def _courses_loaded(self, result, error):
+        self.set_busy(False)
+        if error is not None:
+            self.course_failures = {}
+            self.status.set(f'课程列表读取失败（{type(error).__name__}），请检查网络或稍后重试')
+            return
+        owners, self.course_failures = result
+        # 全部账号失败时保留上次的课程缓存。
+        if owners or not self.course_failures:
+            self.course_owners = owners
+            self.course_picker.configure(values=list(owners))
+            self.preferences['course_list'] = owners
+            try:
+                write_json('ui.local.json', self.preferences)
+            except OSError:
+                pass
+        self.update_course_hint()
+        failed = f'，{len(self.course_failures)} 个账号读取失败' if self.course_failures else ''
+        self.status.set(f'已读取 {len(owners)} 门课程{failed}')
+
+    def filter_courses(self, event=None):
+        """按输入的关键字筛选下拉课程；不改动输入内容。"""
+        if event is not None and event.keysym in ('Up', 'Down', 'Return', 'Escape', 'Tab'):
+            return
+        text = self.course.get().strip()
+        names = list(self.course_owners)
+        self.course_picker.configure(values=[n for n in names if text in n] if text else names)
+        self.update_course_hint()
+
+    def update_course_hint(self, event=None):
+        name = self.course.get().strip()
+        if name in self.course_owners:
+            hint = '已加入此课程的账号：' + '、'.join(self.course_owners[name])
+        elif self.course_owners:
+            hint = f'已读取 {len(self.course_owners)} 门课程，可下拉选择或输入关键字筛选；也可手动输入完整课程名。'
+        else:
+            hint = '选择账号后点击「刷新课程」读取课程列表，或手动输入完整课程名。'
+        if self.course_failures:
+            hint += '\n读取失败：' + '；'.join(f'{u}（{r}）' for u, r in self.course_failures.items())
+        self.course_hint.set(hint)
+
     # ================= 地点管理 =================
     def _preset_names(self):
         return {p.get('name') for p in self.profile.get('preset_locations', [])}
@@ -572,18 +676,196 @@ class App(tk.Tk):
         self.preferences.update(course=self.course.get().strip(), location_mode=self.mode.get(), fixed_location=self.fixed_name.get())
         write_json('ui.local.json', self.preferences)
 
+    def _save_custom_location(self, p):
+        """新增或覆盖同名自定义地点，保留原有别名。"""
+        old = next((v for v in self.locations if v['name'] == p['name']), {})
+        if 'aliases' in old:
+            p['aliases'] = list(old['aliases'])
+        new = [v for v in self.custom_locations if v['name'] != p['name']] + [p]
+        write_json('locations.local.json', new)
+        self.custom_locations = new
+        self.locations = merge_locations(self.profile.get('preset_locations', []), self.custom_locations)
+        self.refresh_places()
+
     def add_location(self):
         def save(values):
-            p = validate_location(*values)
-            old = next((v for v in self.locations if v['name'] == p['name']), {})
-            if 'aliases' in old:
-                p['aliases'] = list(old['aliases'])
-            new = [v for v in self.custom_locations if v['name'] != p['name']] + [p]
-            write_json('locations.local.json', new)
-            self.custom_locations = new
-            self.locations = merge_locations(self.profile.get('preset_locations', []), self.custom_locations)
-            self.refresh_places()
+            self._save_custom_location(validate_location(*values))
         self._form('添加 / 更新地点', [('完整地点名称（与签到页面一致）', False), ('百度经度', False), ('百度纬度', False)], save)
+
+    def search_location(self):
+        """搜索添加地点：地图选点（粘贴百度地图网址，无需注册）或百度 AK 关键词检索。"""
+        if self.search_dialog is not None and self.search_dialog.window.winfo_exists():
+            self.search_dialog.window.lift()
+            return self.search_dialog
+        window = tk.Toplevel(self)
+        window.title('搜索添加地点')
+        window.transient(self)
+        window.configure(bg=CARD)
+        window.geometry('780x680')
+        outer = tk.Frame(window, bg=CARD)
+        outer.pack(fill='both', expand=True, padx=20, pady=16)
+        footer = tk.Frame(outer, bg=CARD)
+        footer.pack(side='bottom', fill='x', pady=(12, 0))
+        ttk.Button(footer, text='关闭', command=window.destroy).pack(side='right')
+        notebook = ttk.Notebook(outer)
+        notebook.pack(fill='both', expand=True)
+        pick = tk.Frame(notebook, bg=CARD, padx=16, pady=12)
+        box = tk.Frame(notebook, bg=CARD, padx=16, pady=12)
+        notebook.add(pick, text='  地图选点（无需注册）  ')
+        notebook.add(box, text='  关键词搜索（需百度 AK）  ')
+        system_labels = {label: key for key, label in COORD_SYSTEMS.items()}
+        d = SimpleNamespace(window=window, notebook=notebook, results=[], picked=None,
+                            ak=tk.StringVar(value=self.preferences.get('baidu_ak', '')),
+                            region=tk.StringVar(value=self.preferences.get('place_region', '')),
+                            keyword=tk.StringVar(), name=tk.StringVar(), hint=tk.StringVar(),
+                            coord_text=tk.StringVar(), coord_system=tk.StringVar(value=COORD_SYSTEMS['bd09']),
+                            pick_name=tk.StringVar(), pick_hint=tk.StringVar())
+
+        # ---- 地图选点 ----
+        tk.Label(pick, text='操作步骤', bg=CARD, fg=TEXT, font=(FONT, 11, 'bold')).pack(anchor='w')
+        tk.Label(pick, text=MAP_PICK_TUTORIAL, bg=CARD, fg=TEXT, font=(FONT, 10), wraplength=700,
+                 justify='left').pack(anchor='w', pady=(4, 8))
+        tools = tk.Frame(pick, bg=CARD)
+        tools.pack(fill='x')
+        ttk.Button(tools, text='打开百度地图', style='Accent.TButton',
+                   command=lambda: webbrowser.open(BAIDU_MAP_URL)).pack(side='left')
+        ttk.Button(tools, text='从剪贴板粘贴并识别', command=lambda: d.paste()).pack(side='left', padx=8)
+        tk.Label(pick, text='网址或坐标', bg=CARD, fg=TEXT).pack(anchor='w', pady=(12, 4))
+        coord_entry = ttk.Entry(pick, textvariable=d.coord_text)
+        coord_entry.pack(fill='x')
+        coord_entry.bind('<Return>', lambda event: d.parse())
+        system_row = tk.Frame(pick, bg=CARD)
+        system_row.pack(fill='x', pady=(8, 0))
+        tk.Label(system_row, text='坐标类型（粘贴网址时自动识别）', bg=CARD, fg=TEXT).pack(side='left')
+        ttk.Combobox(system_row, textvariable=d.coord_system, values=list(system_labels), state='readonly',
+                     width=18).pack(side='left', padx=8)
+        ttk.Button(system_row, text='识别坐标', command=lambda: d.parse()).pack(side='left')
+        tk.Label(pick, textvariable=d.pick_hint, bg=CARD, fg=MUTED, font=(FONT, 9), wraplength=700,
+                 justify='left').pack(anchor='w', pady=(8, 0))
+        tk.Label(pick, text='保存名称', bg=CARD, fg=TEXT).pack(anchor='w', pady=(10, 4))
+        ttk.Entry(pick, textvariable=d.pick_name).pack(fill='x')
+        tk.Label(pick, text='固定位置模式可任意命名；「按指定地点匹配」模式需改成与签到页面显示一致的完整地点名称。',
+                 bg=CARD, fg=MUTED, font=(FONT, 9), wraplength=700, justify='left').pack(anchor='w', pady=(4, 0))
+        ttk.Button(pick, text='添加到地点库', style='Accent.TButton', command=lambda: d.add_picked()).pack(anchor='e', pady=(10, 0))
+
+        def parse():
+            text = d.coord_text.get()
+            try:
+                lng, lat, note = parse_coordinate_text(text, system_labels.get(d.coord_system.get(), 'bd09'))
+                validate_location('坐标', lng, lat)
+            except ValueError as exc:
+                d.picked = None
+                d.pick_hint.set(str(exc))
+                return False
+            d.picked = (lng, lat)
+            keyword = re.search(r'/(?:search|poi)/([^/@?#]+)', text)
+            if keyword and not d.pick_name.get().strip():
+                d.pick_name.set(unquote(keyword.group(1)).strip())
+            d.pick_hint.set(f'{note}：百度经度 {lng:.7f}，纬度 {lat:.7f}。确认名称后点「添加到地点库」。')
+            return True
+
+        def paste():
+            try:
+                d.coord_text.set(self.clipboard_get())
+            except tk.TclError:
+                d.pick_hint.set('剪贴板里没有文字，请先在浏览器地址栏复制网址。')
+                return
+            parse()
+
+        def add_picked():
+            if not parse():
+                return
+            try:
+                p = validate_location(d.pick_name.get(), *d.picked)
+                self._save_custom_location(p)
+            except (ValueError, OSError) as exc:
+                messagebox.showerror('未保存', str(exc), parent=window)
+                return
+            d.pick_hint.set('已添加到地点库：' + p['name'])
+
+        # ---- 关键词搜索 ----
+        form = tk.Frame(box, bg=CARD)
+        form.pack(fill='x')
+        tk.Label(form, text='百度地图 AK', bg=CARD, fg=TEXT).grid(row=0, column=0, sticky='w')
+        ttk.Entry(form, textvariable=d.ak, width=40, show='•').grid(row=0, column=1, columnspan=3, sticky='we', padx=8, pady=4)
+        ttk.Button(form, text='申请 AK', command=lambda: webbrowser.open(BAIDU_AK_URL)).grid(row=0, column=4, sticky='w')
+        tk.Label(form, text='城市（可留空）', bg=CARD, fg=TEXT).grid(row=1, column=0, sticky='w')
+        ttk.Entry(form, textvariable=d.region, width=12).grid(row=1, column=1, sticky='w', padx=8, pady=4)
+        tk.Label(form, text='关键词', bg=CARD, fg=TEXT).grid(row=1, column=2, sticky='w')
+        keyword_entry = ttk.Entry(form, textvariable=d.keyword, width=24)
+        keyword_entry.grid(row=1, column=3, sticky='we', padx=8, pady=4)
+        d.button = ttk.Button(form, text='搜索', style='Accent.TButton', command=lambda: d.search())
+        d.button.grid(row=1, column=4, sticky='w')
+        form.columnconfigure(3, weight=1)
+        keyword_entry.bind('<Return>', lambda event: d.search())
+        tk.Label(box, textvariable=d.hint, bg=CARD, fg=MUTED, font=(FONT, 9), wraplength=700,
+                 justify='left').pack(anchor='w', pady=(6, 6))
+
+        d.tree = ttk.Treeview(box, columns=('name', 'address', 'coord'), show='headings', height=7, selectmode='browse')
+        for col, title, width in [('name', '名称', 220), ('address', '地址', 300), ('coord', '百度经纬度', 180)]:
+            d.tree.heading(col, text=title)
+            d.tree.column(col, width=width, minwidth=60)
+        d.tree.pack(fill='both', expand=True)
+
+        tk.Label(box, text='保存名称', bg=CARD, fg=TEXT).pack(anchor='w', pady=(10, 4))
+        ttk.Entry(box, textvariable=d.name).pack(fill='x')
+        tk.Label(box, text='固定位置模式可任意命名；「按指定地点匹配」模式需改成与签到页面显示一致的完整地点名称。',
+                 bg=CARD, fg=MUTED, font=(FONT, 9), wraplength=700, justify='left').pack(anchor='w', pady=(4, 0))
+        ttk.Button(box, text='添加到地点库', style='Accent.TButton', command=lambda: d.add()).pack(anchor='e', pady=(10, 0))
+
+        def search():
+            keyword, region, ak = d.keyword.get(), d.region.get(), d.ak.get()
+            self.preferences.update(baidu_ak=ak.strip(), place_region=region.strip())
+            try:
+                write_json('ui.local.json', self.preferences)
+            except OSError:
+                pass
+            d.hint.set('正在搜索…')
+            d.button.configure(state='disabled')
+            self._background(lambda: asyncio.run(search_places(keyword, region, ak)), done)
+
+        def done(places, error):
+            if not window.winfo_exists():
+                return
+            d.button.configure(state='normal')
+            if isinstance(error, ValueError):
+                d.hint.set(str(error))
+                return
+            if error is not None:
+                d.hint.set(f'搜索失败（{type(error).__name__}），请检查网络或稍后重试')
+                return
+            d.results = places
+            d.tree.delete(*d.tree.get_children())
+            for i, p in enumerate(places):
+                d.tree.insert('', 'end', iid=str(i),
+                              values=(p['name'], p['address'], f"{p['longitude']:.7f}, {p['latitude']:.7f}"))
+            d.hint.set(f'找到 {len(places)} 个地点，选中一项后可修改保存名称。' if places else '没有找到地点，请换个关键词或城市。')
+
+        def on_select(event=None):
+            selection = d.tree.selection()
+            if selection:
+                d.name.set(d.results[int(selection[0])]['name'])
+
+        def add():
+            selection = d.tree.selection()
+            if not selection:
+                messagebox.showinfo('需要选择', '请先在搜索结果中选择一个地点。', parent=window)
+                return
+            place = d.results[int(selection[0])]
+            try:
+                p = validate_location(d.name.get(), place['longitude'], place['latitude'])
+                self._save_custom_location(p)
+            except (ValueError, OSError) as exc:
+                messagebox.showerror('未保存', str(exc), parent=window)
+                return
+            d.hint.set('已添加到地点库：' + p['name'])
+
+        d.tree.bind('<<TreeviewSelect>>', on_select)
+        d.search, d.done, d.add = search, done, add
+        d.parse, d.paste, d.add_picked = parse, paste, add_picked
+        self.search_dialog = d
+        coord_entry.focus_set()
+        return d
 
     def remove_location(self):
         chosen = set(self.place_list.curselection())
@@ -663,7 +945,8 @@ class App(tk.Tk):
     # ================= 签到调度 =================
     def set_busy(self, busy):
         self.busy = busy
-        for button in [self.scan, self.submit, self.add_button, self.remove_button, self.place_add, self.place_remove]:
+        for button in [self.scan, self.submit, self.course_refresh, self.add_button, self.remove_button,
+                       self.place_add, self.place_search, self.place_remove]:
             button.configure(state='disabled' if busy else 'normal')
         for radio in [self.fixed_radio, self.auto_radio]:
             radio.configure(state='disabled' if busy else 'normal')
@@ -675,7 +958,7 @@ class App(tk.Tk):
         accounts = [dict(self.accounts[i]) for i in self.account_list.curselection()]
         course = self.course.get().strip()
         if not accounts or not course:
-            messagebox.showinfo('需要补充', '请输入完整课程名并选择至少一个账号。')
+            messagebox.showinfo('需要补充', '请选择或输入完整课程名，并选择至少一个账号。')
             return
         try:
             fixed_location = self.selected_fixed_location() if self.mode.get() == 'fixed' else None
@@ -703,7 +986,23 @@ class App(tk.Tk):
                 self.messages.put(None)
         threading.Thread(target=worker, daemon=True).start()
 
+    def _background(self, job, done):
+        """后台线程执行 job，完成后由 poll 在主线程回调 done(result, error)。"""
+        def worker():
+            try:
+                result, error = job(), None
+            except Exception as exc:
+                result, error = None, exc
+            self.callbacks.put((done, result, error))
+        threading.Thread(target=worker, daemon=True).start()
+
     def poll(self):
+        try:
+            while True:
+                done, result, error = self.callbacks.get_nowait()
+                done(result, error)
+        except queue.Empty:
+            pass
         try:
             while True:
                 item = self.messages.get_nowait()

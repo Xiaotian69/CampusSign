@@ -19,7 +19,7 @@ from importlib.metadata import distribution
 from app_config import CONTACT_EMAIL, REPO_URL
 
 ROOT = Path(__file__).resolve().parent
-VERSION = '1.0.0'
+VERSION = '1.1.0'
 DIST = ROOT / 'dist'
 RELEASE = ROOT / 'release'
 
@@ -60,7 +60,8 @@ def assemble(exe):
         (folder / 'README.md').write_text(
             f'# CxSign v{VERSION} — {name} Edition\n\n'
             '解压到可写目录，双击 CxSign.exe 启动，无需安装 Python。\n\n'
-            '首次使用阅读用户须知，添加自己的账号和地点；输入完整课程名后可先“仅查询”，再执行“查询并签到”。\n\n'
+            '首次使用阅读用户须知，添加自己的账号和地点；选择账号后点“刷新课程”选择课程（也可手动输入完整课程名），可先“仅查询”，再执行“查询并签到”。\n\n'
+            '添加地点可用“搜索添加地点 → 地图选点”：在百度地图网页搜到楼、放大到最大并居中后复制网址粘贴即可，无需注册。\n\n'
             'SCUFE 内置山财地点和资料入口；Generic 初始地点为空。两个版本均支持自定义地点。\n\n'
             '账号以明文保存在本机，登录凭据仅用于学习通请求。请勿分享包含个人配置的程序目录。\n\n'
             '签到功能支持位置签到；课程学习使用独立浏览器进程。接口或网络变化可能影响功能，结果请在学习通核对。\n\n'

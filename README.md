@@ -1,231 +1,246 @@
-# CxSign
+<div align="center">
 
-> 一个面向山西财经大学、同时支持其他学校自定义地点的学习通位置签到桌面工具。
+# CxSign · 学习通位置签到桌面工具
 
-> 本地开发分支新增“课程学习”页面，使用独立浏览器进程接入课程队列、章节任务、作业、AI 配置和定时运行。位置签到仍使用原核心；已发布的 v1.0.0 不包含此次新增功能。安装和验收见 [课程学习说明](docs/COURSE_LEARNING.md)。迁入引擎保留原作者的非商业许可。
+**选好账号、课程和地点，点一下，完成学习通（超星）进行中的位置签到，并逐个账号核对结果。**
 
-CxSign 是一个第三方开源的图形界面签到工具。只需输入课程名、选择账号和地点，即可对进行中的**位置签到**执行一次签到，并逐项反馈结果。
+[![Release](https://img.shields.io/github/v/release/Xiaotian69/CampusSign?label=Release&color=2f6bff)](https://github.com/Xiaotian69/CampusSign/releases/latest)
+![Windows](https://img.shields.io/badge/Windows-x64-0078D4?logo=windows&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
+![Local only](https://img.shields.io/badge/数据-仅存本机-16a34a)
+[![License: MIT](https://img.shields.io/badge/License-MIT-0b7a75)](LICENSE)
 
-- 🎓 **SCUFE Edition**：内置山西财经大学坞城校区常用地点，开箱即用
-- 🌍 **Generic Edition**：不含任何学校预设，任何学校都能自行添加地点
-- 📍 **自定义地点**：支持地点的新增、编辑、删除、导入与导出
-- 🖥️ **图形化操作**：无需命令行，普通学生也能使用
-- 🔒 **本地配置**：账号信息只保存在你自己的电脑上
-- 📚 **山财学习资料**：SCUFE Edition 内置[山西财经大学期末资料入口](https://github.com/Xiaotian69/shanxi-caijing-exams)
-- ⭐ **GitHub 开源**：代码、界面、配置体系与文档由本项目维护
+[⬇️ 下载通用版](https://github.com/Xiaotian69/CampusSign/releases/download/v1.1.0/CxSign-v1.1.0-Generic.zip) · [使用教程](docs/USER_GUIDE.md) · [隐私说明](docs/PRIVACY.md) · [常见问题](#常见问题) · [English](#english-summary)
 
-## 界面预览
+</div>
 
-| SCUFE Edition 首页 | 地点管理 |
-| --- | --- |
-| ![CxSign SCUFE 首页](screenshots/home_scufe.png) | ![CxSign 地点管理](screenshots/places_scufe.png) |
+![CxSign 签到页：课程下拉、位置模式、多账号与执行结果](screenshots/sign_generic.png)
 
-| 学习资料入口 | Generic Edition 首页 |
-| --- | --- |
-| ![CxSign 学习资料](screenshots/resources_scufe.png) | ![CxSign Generic 首页](screenshots/home_generic.png) |
+<sub>截图使用占位账号、示例课程与示例地点，不含任何真实数据。</sub>
 
----
+CxSign 是一个 Windows 图形界面工具，专注做一件事：**学习通位置签到**。不需要命令行，也不需要手动查经纬度：添加账号，刷新课程，选择地点，点击「查询并签到」，结果按账号逐行列出。适用于任何学校，山西财经大学同学可以使用内置地点的 [SCUFE Edition](#高校预设--scufe-edition)。
 
-## 目录
+> **使用方式说明**：每次签到都需要你**手动点击按钮**触发，程序只对当时「进行中」的位置签到执行一次。它**不会**在后台定时运行、无人值守监听或自动抢签到，也**不会**绕过学习通的任何验证。
 
-- [下载](#下载)
-- [如何选择版本](#如何选择版本)
-- [快速开始](#快速开始)
-- [功能](#功能)
-- [使用教程](#使用教程)
-- [隐私说明](#隐私说明)
-- [常见问题](#常见问题)
-- [Roadmap](#roadmap)
-- [项目结构](#项目结构)
-- [反馈与建议](#-反馈与建议)
-- [贡献](#贡献)
-- [接口参考与致谢](#接口参考与致谢)
-- [第三方组件](#第三方组件)
-- [免责声明](#免责声明)
+## 签到流程
 
----
+```text
+添加账号 → 刷新课程（下拉选择） → 选择位置模式与地点 → 查询并签到 → 逐账号核对结果
+```
 
-## 下载
-
-推荐通过 [GitHub Releases](https://github.com/Xiaotian69/CampusSign/releases/latest) 下载最新版。源码运行见[快速开始](#快速开始)。
-
-| 版本 | 说明 |
-| --- | --- |
-| [CxSign-v1.0.0-SCUFE.zip](https://github.com/Xiaotian69/CampusSign/releases/download/v1.0.0/CxSign-v1.0.0-SCUFE.zip) | 山西财经大学版，内置山财地点预设 |
-| [CxSign-v1.0.0-Generic.zip](https://github.com/Xiaotian69/CampusSign/releases/download/v1.0.0/CxSign-v1.0.0-Generic.zip) | 通用版，不含任何学校预设 |
-
-### 如何选择版本
-
-- **山西财经大学学生**：推荐 `SCUFE Edition`（内置山财地点，开箱即用）。
-- **其他学校学生**：推荐 `Generic Edition`（初始地点为空，自行添加）。
-
-> 即使下载 `SCUFE Edition`，也仍然可以自行添加其他地点。
-
----
-
-## 快速开始
-
-### 从源码运行
-
-1. 安装 Python 3.10+（本次自动测试使用 Windows / Python 3.13）。
-2. 安装依赖：
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. 启动：
-
-   ```bash
-   python desktop_ui.py
-   ```
-
-   Windows 下也可以双击 `start_windows.vbs` 静默启动（自动优先使用 `.venv`，否则调用系统的 `pythonw`）。
-
-默认启动 SCUFE Edition。使用 Generic Edition 时，复制 `config.example.json` 为本机 `config.json`，将 `edition` 改为 `generic`，保持 `dev_mode` 为 `false`。两个 Edition 共用同一核心代码。
-
-### 首次启动
-
-1. 阅读《用户须知》，点击「我已阅读并理解」进入主程序；
-2. 在「签到」页添加账号（手机号登录时学校 ID 留空）；
-3. 在「地点」页确认或添加地点；
-4. 输入完整课程名，选择账号，点击「查询并签到」。
-
----
+| 步骤 | 你要做的 | CxSign 做的 |
+| --- | --- | --- |
+| 1. 账号 | 在「签到」页添加一个或多个学习通账号 | 账号只保存在本机，列表里可用 Ctrl / Shift 多选 |
+| 2. 课程 | 点击「刷新课程」，从下拉框选择课程 | 读取所选账号已加入的课程（只读，不签到），并提示哪些账号在这门课里 |
+| 3. 地点 | 选择「固定位置」或「按指定地点匹配」 | 从本机地点库取坐标 |
+| 4. 签到 | 点击「查询并签到」（或「仅查询」先看看） | 找到进行中的位置签到并提交一次，签到后复查页面状态 |
+| 5. 结果 | 查看结果表格，双击查看详情 | 逐行列出账号、课程、活动、签到位置和结果；单个账号失败不影响其他账号 |
 
 ## 功能
 
-- 学习通位置签到（图形界面）
-- 固定位置 / 按指定地点匹配两种模式
-- 账号管理（本地保存，界面密码遮挡）
-- 地点管理（新增、编辑、删除、导入、导出）
-- 双版本：SCUFE Edition / Generic Edition
-- 首次启动用户须知
-- 学习资料入口
-- 帮助与更新日志页面
+| 能力 | 说明 |
+| --- | --- |
+| 📍 **位置签到** | 只处理「进行中」的位置签到；签到后复查活动页，区分「签到成功」「已签到，跳过」「接口已接受但复查未确认」和失败原因 |
+| 📚 **课程查询** | 按选中账号自动读取已加入的课程，支持关键字筛选，也可以手动输入完整课程名 |
+| 👥 **多账号操作** | 一次选择多个账号，每个账号使用独立会话（最多 2 个并发），结果互不影响 |
+| 🎯 **两种位置模式** | **固定位置**：每次都提交同一地点的坐标；**按指定地点匹配**：按签到活动里的指定地点名称，在地点库中完整匹配 |
+| 🗺️ **地点管理** | 地图选点（粘贴百度地图网址，本机离线识别坐标，无需注册）、关键词搜索（需自备百度 AK）、粘贴经纬度（支持 BD-09 / GCJ-02 / WGS-84）、手动添加、导入与导出 JSON |
+| 🏫 **通用高校适配** | Generic Edition 不带任何学校预设，任何学校都可以建立自己的地点库；支持手机号登录，学号登录时填写学校 ID |
+| 🔍 **仅查询** | 只读取活动和状态，不提交签到，适合先确认课程和地点是否正确 |
+| 🔒 **本地数据** | 账号、地点和偏好只写入程序目录下的本地文件；没有开发者服务器、遥测或广告 |
 
-> 本工具仅处理「位置签到」。普通签到、拍照、签到码、二维码、人脸等其他类型会在结果中提示不支持。
+> 只支持位置签到。普通签到、拍照、签到码、二维码、人脸等类型会在结果中提示「暂不支持此签到类型」。
 
----
+## 下载与安装
 
-## 使用教程
+前往 [GitHub Releases](https://github.com/Xiaotian69/CampusSign/releases/latest) 下载最新版（当前 v1.1.0，Windows x64）：
 
-- 软件内「帮助」页提供简明说明；
-- 完整教程见 [docs/USER_GUIDE.md](docs/USER_GUIDE.md)。
+| 版本 | 适合谁 | 下载 |
+| --- | --- | --- |
+| **Generic Edition（通用版，推荐）** | 所有学校。初始地点库为空，自行添加本校地点 | [CxSign-v1.1.0-Generic.zip](https://github.com/Xiaotian69/CampusSign/releases/download/v1.1.0/CxSign-v1.1.0-Generic.zip) |
+| SCUFE Edition（山西财经大学版） | 山西财经大学同学。额外内置山财地点与学习资料入口 | [CxSign-v1.1.0-SCUFE.zip](https://github.com/Xiaotian69/CampusSign/releases/download/v1.1.0/CxSign-v1.1.0-SCUFE.zip) |
 
----
+1. 下载 zip 并解压到一个独立文件夹；
+2. 双击 `CxSign.exe`；
+3. 第一次启动时阅读《用户须知》，点击「我已阅读并理解」。
 
-## 隐私说明
+两个版本共用同一套签到核心，SCUFE Edition 同样可以添加任何其他地点。
 
-- **账号信息只保存在本机**：账号、密码、地点、偏好均写入本地文件（`user.json`、`locations.local.json`、`ui.local.json`），这些文件已通过 `.gitignore` 排除，不会进入版本库。
-- **不上传至开发者服务器**：本项目没有开发者服务器，不存在上传账号数据的情况。
-- **凭据用途**：登录凭据仅用于在本机与学习通平台之间完成必要的请求。
-- **无遥测、无统计、无广告**：不包含任何遥测、行为统计、广告或第三方分析 SDK。
+**从 v1.0.0 升级**：把新版解压到新文件夹，再把旧目录里的 `user.json`、`locations.local.json`、`ui.local.json`（有哪个复制哪个）复制到新版 `CxSign.exe` 所在目录，即可保留账号、地点和偏好。
 
-详细说明见 [隐私说明](docs/PRIVACY.md)。
+## 快速上手
 
----
+1. **添加账号**：「签到」页 →「添加 / 更新账号」，填写学习通账号和密码；手机号登录时学校 ID 留空。
+2. **准备地点**：「地点」页 →「搜索添加地点」。推荐使用「地图选点」：
+   1. 在百度地图网页搜索「学校名 + 楼名」，点开结果；
+   2. 把红色标记放大到最大，并拖到浏览器窗口正中间；
+   3. 复制地址栏网址，回到软件点「从剪贴板粘贴并识别」。
+3. **选择课程**：选中账号 →「刷新课程」→ 在下拉框选择课程。
+4. **选择位置模式**：「固定位置」选一个地点；或「按指定地点匹配」。
+5. **签到**：点击「查询并签到」，在结果表格中逐行核对；最终状态以学习通内显示为准。
+
+完整图文教程见 [docs/USER_GUIDE.md](docs/USER_GUIDE.md)。
+
+| 地图选点（无需注册） | 地点管理（通用版初始为空） |
+| --- | --- |
+| ![粘贴百度地图网址后自动识别坐标](screenshots/pick_scufe.png) | ![Generic Edition 地点管理](screenshots/places_generic.png) |
+
+<sub>地图选点会拒绝缩放级别低于 18 级的网址，避免存入偏差几百米的坐标。</sub>
+
+## 两种位置模式怎么选
+
+| 模式 | 提交的坐标 | 适合场景 |
+| --- | --- | --- |
+| **固定位置** | 每次都提交你在下拉框里选择的同一个地点；地点名称可以随意命名 | 上课地点固定，或签到活动没有写明指定地点 |
+| **按指定地点匹配** | 读取签到活动页显示的指定地点，在地点库中**完整匹配**名称后提交对应坐标 | 不同课程在不同教学楼。地点库里的名称需要与签到页面显示的完整名称一致 |
+
+按指定地点匹配不做模糊匹配。名称不一致或匹配到多个地点时，程序会停止，并在结果中显示活动要求的完整地点名称，方便你补充地点库。
+
+## 结果怎么看
+
+| 结果 | 含义 |
+| --- | --- |
+| 签到成功 | 已提交，且复查活动页确认签到成功 |
+| 已签到，跳过 | 这个活动之前已经签到过，本次不重复提交 |
+| 接口已接受，复查未确认 | 服务端返回成功但复查没有确认，请到学习通核对 |
+| 没有进行中的签到 | 该课程当前没有进行中的位置签到 |
+| 暂不支持此签到类型 | 活动不是位置签到 |
+| 未成功：… | 服务端拒绝（例如不在可签到范围内），原因会如实显示 |
+
+## 高校预设 / SCUFE Edition
+
+SCUFE Edition 是为山西财经大学同学准备的附加版本，签到能力与通用版完全相同，额外提供：
+
+- **内置山财坞城校区常用地点**：立信楼、南院、修德楼（含常见的地点名称别名，方便「按指定地点匹配」模式）。预设地点可以删除，也可以继续添加其他地点。
+- **学习资料入口**：「学习资料」页链接到 [山西财经大学历年期末资料](https://github.com/Xiaotian69/shanxi-caijing-exams)。
+
+| SCUFE Edition 首页 | 内置地点 | 学习资料入口 |
+| --- | --- | --- |
+| ![SCUFE Edition 首页](screenshots/home_scufe.png) | ![SCUFE Edition 地点管理](screenshots/places_scufe.png) | ![SCUFE Edition 学习资料](screenshots/resources_scufe.png) |
+
+欢迎通过 [地点补充 Issue](https://github.com/Xiaotian69/CampusSign/issues/new/choose) 为山财或其他学校补充地点预设，只需要地点名称和百度坐标，不需要账号。
+
+## 本地数据与隐私边界
+
+| 数据 | 保存位置 | 会发送给谁 |
+| --- | --- | --- |
+| 学习通账号、密码、学校 ID | 本机 `user.json`（明文） | 只在登录时发送给学习通平台 |
+| 地点库 | 本机 `locations.local.json` | 签到时把选中坐标发送给学习通平台 |
+| 课程名、位置模式、百度 AK 等偏好 | 本机 `ui.local.json` | 百度 AK 只在「关键词搜索」时随关键词、城市一起发送给百度地图开放平台 |
+| 地图选点粘贴的网址 / 坐标 | 不单独保存 | 不联网，在本机离线换算 |
+
+- 本项目**没有开发者服务器**，不收集、不上传任何账号数据；不含遥测、统计、广告或第三方分析 SDK。
+- 本地文件**不是加密保险库**：请勿在公共电脑保存账号，也不要把整个程序文件夹分享给他人。
+- 上述本地文件已被 `.gitignore` 排除，不会进入版本库。
+
+详细说明见 [docs/PRIVACY.md](docs/PRIVACY.md) 与 [SECURITY.md](SECURITY.md)。
 
 ## 常见问题
 
-**Q：签到失败怎么办？**
-先确认网络正常，再核对账号密码、课程名与地点。固定位置若不在签到范围内，服务端仍会判定失败，结果会如实提示。
+**Q：程序会在后台自动帮我签到吗？**
+不会。每次都需要你手动点击「查询并签到」，程序只对当时进行中的位置签到执行一次。没有定时任务、后台监听或自动抢签到功能。
 
-**Q：支持哪些签到类型？**
-目前仅支持位置签到。
+**Q：我们学校不是山西财经大学，能用吗？**
+可以，推荐下载 Generic Edition（通用版），用「地图选点」把本校教学楼加入地点库即可。
+
+**Q：支持拍照、二维码、签到码、人脸签到吗？**
+不支持。目前只处理位置签到，其他类型会提示「暂不支持此签到类型」。
+
+**Q：提示「不在可签到范围内」怎么办？**
+说明提交的坐标不在老师设定的范围内。请确认选择的地点正确；用地图选点时，务必放大到最大并把标记拖到窗口正中间再复制网址。
+
+**Q：「按指定地点匹配」总是匹配不上？**
+地点库里的名称必须与签到页面显示的完整地点名称一致（不做模糊匹配）。结果里会显示活动要求的完整地点名称，按它修改「保存名称」即可；也可以改用「固定位置」模式。
+
+**Q：用学号登录需要填什么？**
+学号登录时需要填写学校 ID；手机号登录留空即可。登录失败时请核对账号密码，或先在学习通 App 内完成验证。
 
 **Q：账号安全吗？**
-账号以明文保存在你本机的 `user.json`，登录时会发送给学习通平台，不发送给开发者服务器。请勿在公共场所保存账号，也勿分享整个项目文件夹。
+账号以明文保存在本机 `user.json`，只会在登录时发送给学习通平台，不会发送给开发者。请勿在公共设备上保存账号。
 
 **Q：会失效吗？**
-软件可能因学习通接口、网络环境或平台策略变化而失效，不保证所有环境下可用。
+可能。学习通接口调整、网络环境或平台策略变化都可能导致功能失效。签到结果请以学习通内显示为准。
 
----
+## 从源码运行
+
+需要 Windows 和 Python 3.10+（开发验证使用 Python 3.12 / 3.13）。
+
+```bash
+git clone https://github.com/Xiaotian69/CampusSign.git
+cd CampusSign
+pip install -r requirements.txt
+python desktop_ui.py
+```
+
+Windows 下也可以双击 `start_windows.vbs` 静默启动（优先使用 `.venv`，否则调用系统 `pythonw`）。
+
+源码默认启动 SCUFE Edition。切换到通用版：复制 `config.example.json` 为 `config.json`，把 `edition` 改为 `generic`，`dev_mode` 保持 `false`。
+
+运行离线测试（不连接学习通、不提交签到）：
+
+```bash
+python -m unittest test_desktop test_desktop_ui test_place_search -v
+```
 
 ## Roadmap
 
-- [x] Windows 单文件可执行程序及双 Edition 发行包
-- [ ] 更多山财校区 / 教学楼地点预设
-- [ ] 学习资料在线索引
+- [x] Windows 单文件可执行程序与双版本发行包（v1.0.0）
+- [x] 课程列表自动读取、地图选点与关键词搜索添加地点（v1.1.0）
+- [ ] 更多高校 / 校区地点预设（欢迎补充）
 - [ ] 检查更新（读取 GitHub Releases 最新版本）
 - [ ] 多平台支持（macOS / Linux）
 
-> v1.0 不实现刷课、自动答题、人脸绕过、考试相关自动化等功能。
-
----
+以上未勾选的条目为规划，尚未实现，也不代表确定的发布时间。本项目**不会**实现刷课、自动答题、人脸绕过、考试相关自动化等功能。
 
 ## 项目结构
 
-```
-CxSign/
-├─ desktop_core.py          # 签到核心（登录、课程、活动、地点、签到、结果）
-├─ protocol.py              # 学习通平台协议常量（接口地址、请求字段、UA）
-├─ paths.py                 # 资源目录与数据目录定位（源码/打包兼容）
-├─ desktop_ui.py            # 桌面界面（导航、须知、各页面）
+```text
+CampusSign/
+├─ desktop_ui.py            # 桌面界面（导航、须知、签到 / 地点 / 资料 / 帮助页）
+├─ desktop_core.py          # 签到核心（登录、课程、活动、地点匹配、签到、复查）
+├─ protocol.py              # 学习通平台协议常量
+├─ place_search.py          # 地图选点网址解析、坐标换算、百度关键词检索
 ├─ app_config.py            # 品牌信息与 Edition 档案加载
+├─ paths.py                 # 资源与数据目录定位（源码 / 打包兼容）
 ├─ disclaimer.py            # 《用户须知》文案
-├─ profiles/
-│  ├─ scufe.json            # 山西财经大学版预设地点
-│  └─ generic.json          # 通用版（空预设）
-├─ docs/
-│  ├─ USER_GUIDE.md         # 完整使用教程
-│  ├─ PRIVACY.md            # 隐私说明
-│  └─ DISCLAIMER.md         # 免责声明
-├─ screenshots/             # 界面预览截图
-├─ CORE_BEHAVIOR_SPEC.md    # 核心行为规格
-├─ config.example.json      # 运行配置模板（edition / dev_mode）
-├─ user.example.json        # 账号配置模板
+├─ profiles/                # generic.json（空预设）/ scufe.json（山财预设）
+├─ docs/                    # 使用教程、隐私说明、免责声明、发布检查清单
+├─ screenshots/             # README 截图（占位数据）
+├─ CORE_BEHAVIOR_SPEC.md    # 签到核心行为规格
 ├─ test_desktop.py          # 签到核心回归测试
 ├─ test_desktop_ui.py       # 界面离线集成测试
-├─ CxSign.spec              # PyInstaller 打包规格
-├─ build_release.py         # 发行包构建脚本
-├─ CHANGELOG.md             # 更新日志
-├─ CONTRIBUTING.md          # 贡献指南
-├─ SECURITY.md              # 安全说明
-├─ LICENSE                  # MIT
-├─ THIRD_PARTY_NOTICES.md   # 第三方组件许可证
-├─ requirements.txt
+├─ test_place_search.py     # 地点检索离线测试
+├─ CxSign.spec / build_release.py   # PyInstaller 打包与双版本发行包构建
 └─ start_windows.vbs        # Windows 静默启动器
 ```
 
----
+## 反馈与贡献
 
-## 💬 反馈与建议
-
-使用问题、功能建议、地点补充或山财学习资料建议，欢迎通过以下方式反馈：
-
-- [GitHub Issues](https://github.com/Xiaotian69/CampusSign/issues)
+- 使用问题、功能建议、地点补充：[GitHub Issues](https://github.com/Xiaotian69/CampusSign/issues)
 - Email：[andyzhao722@gmail.com](mailto:andyzhao722@gmail.com)
+- 贡献代码前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)，并确保离线测试全部通过。
 
-请勿发送账号、密码、Cookie、Token、学号或私人配置；截图请先遮挡个人信息。
-
-## 贡献
-
-欢迎学弟学妹参与维护。报告 Bug、补充地点、建议功能或提交 PR 请参考 [CONTRIBUTING.md](CONTRIBUTING.md)。
-
-- 报告 Bug：请在 Issue 中描述复现步骤与报错信息，**提交前遮挡账号、密码、Cookie 等隐私信息**。
-- 补充地点：欢迎为山财或其他学校补充地点预设（仅需地点名称与百度坐标，无需账号）。
-
----
+请勿在 Issue 或邮件中发送账号、密码、Cookie、Token、学号、百度 AK 或私人配置；截图请先遮挡个人信息。
 
 ## 接口参考与致谢
 
-CxSign 的实现过程中参考了社区公开的学习通接口调用经验。当前项目代码、界面、配置体系和文档由本项目维护。感谢社区开发者分享相关经验。
-
----
-
-## 第三方组件
-
-本项目使用的第三方 Python 库及其许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
-
----
+CxSign 的实现参考了社区公开的学习通接口调用经验，当前项目代码、界面、配置体系和文档由本项目维护。感谢社区开发者的分享。本项目使用的第三方 Python 库及其许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ## 免责声明
 
-本项目为第三方开源学习与技术交流项目，与超星学习通官方、山西财经大学官方均无关联。详细内容见 [免责声明](docs/DISCLAIMER.md) 与软件内《用户须知》。
+本项目为第三方开源学习与技术交流项目，与超星学习通、山西财经大学及百度地图官方均无关联、合作或授权关系。请遵守所在学校、课程和平台的规定，在规则允许的范围内使用。详见 [免责声明](docs/DISCLAIMER.md) 与软件内《用户须知》。
+
+## English Summary
+
+**CxSign** is a Windows desktop GUI for **Chaoxing (Xuexitong) location check-ins**. Add one or more accounts, load your enrolled courses, pick a place (a fixed location, or automatic matching against the activity's required place), and click *Query & Check in*. CxSign submits each in-progress location check-in once, re-checks the activity page, and reports a per-account result.
+
+- Every run is triggered manually. There is no background scheduler, unattended monitoring or auto-grabbing, and no bypass of platform verification.
+- Places can be added by pasting a Baidu Maps URL (offline conversion, no registration), by keyword search with your own Baidu AK, by pasting coordinates (BD-09 / GCJ-02 / WGS-84), or by JSON import.
+- **Generic Edition** works for any school. **SCUFE Edition** adds presets for Shanxi University of Finance and Economics.
+- Accounts and settings stay in local files next to the app; there is no developer server or telemetry.
+
+Download from [Releases](https://github.com/Xiaotian69/CampusSign/releases/latest). Licensed under [MIT](LICENSE). Not affiliated with Chaoxing, any university or Baidu.
 
 ---
 
-构建与维护检查清单见 [发布检查清单](docs/RELEASE_CHECKLIST.md)。
-
-如果 CxSign 对你有帮助，欢迎点一个 Star ⭐。
+<div align="center"><sub>如果 CxSign 对你有帮助，欢迎点一个 Star ⭐</sub></div>

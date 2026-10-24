@@ -282,6 +282,108 @@ class UiTests(unittest.TestCase):
         self.assertNotIn('山西财经大学历年期末资料', texts)
         self.assertFalse(any('山西财经大学' in text for text in texts))
 
+    # ===== 课程列表 =====
+    def test_refresh_courses_fills_picker_and_caches(self):
+        self.app = self.make_app('scufe')
+        owners = {'概率论': ['example-b'], '高等数学': ['example-a', 'example-b']}
+        with patch('desktop_ui.threading.Thread') as thread, \
+                patch('desktop_ui.list_courses', new_callable=AsyncMock, return_value=(owners, {})) as fetch:
+            self.app.refresh_courses()
+            self.assertTrue(self.app.busy)
+            thread.call_args.kwargs['target']()
+            self.app.poll()
+        self.assertEqual([a['username'] for a in fetch.await_args.args[0]], ['example-a', 'example-b'])
+        self.assertFalse(self.app.busy)
+        self.assertEqual(list(self.app.course_picker.cget('values')), ['概率论', '高等数学'])
+        self.assertEqual(self.write.call_args.args[1]['course_list'], owners)
+        self.app.course.set('高等数学')
+        self.app.update_course_hint()
+        self.assertIn('example-a、example-b', self.app.course_hint.get())
+
+    def test_failed_refresh_keeps_cached_courses(self):
+        self.settings['course_list'] = {'高等数学': ['example-a']}
+        self.app = self.make_app('scufe')
+        with patch('desktop_ui.threading.Thread') as thread, \
+                patch('desktop_ui.list_courses', new_callable=AsyncMock, return_value=({}, {'example-a': '登录失败'})):
+            self.app.refresh_courses()
+            thread.call_args.kwargs['target']()
+            self.app.poll()
+        self.assertEqual(list(self.app.course_picker.cget('values')), ['高等数学'])
+        self.assertIn('登录失败', self.app.course_hint.get())
+
+    def test_refresh_courses_needs_account(self):
+        self.app = self.make_app('scufe')
+        self.app.account_list.selection_clear(0, 'end')
+        with patch('desktop_ui.threading.Thread') as thread, patch('desktop_ui.messagebox.showinfo') as info:
+            self.app.refresh_courses()
+        thread.assert_not_called()
+        info.assert_called_once()
+
+    def test_course_filter_keeps_typed_text(self):
+        self.settings['course_list'] = {'高等数学': ['example-a'], '线性代数': ['example-a'], '数学建模': ['example-b']}
+        self.app = self.make_app('scufe')
+        self.app.course.set('数学')
+        self.app.filter_courses()
+        self.assertEqual(list(self.app.course_picker.cget('values')), ['高等数学', '数学建模'])
+        self.assertEqual(self.app.course.get(), '数学')
+
+    # ===== 地点搜索 =====
+    def test_search_dialog_adds_renamed_result(self):
+        self.app = self.make_app('generic')
+        dialog = self.app.search_location()
+        dialog.ak.set('example-ak')
+        dialog.region.set('太原')
+        dialog.keyword.set('立信楼')
+        places = [{'name': '立信楼', 'address': '坞城路696号', 'longitude': 112.5930636, 'latitude': 37.792118}]
+        with patch('desktop_ui.threading.Thread') as thread, \
+                patch('desktop_ui.search_places', new_callable=AsyncMock, return_value=places) as search:
+            dialog.search()
+            thread.call_args.kwargs['target']()
+            self.app.poll()
+        self.assertEqual(search.await_args.args, ('立信楼', '太原', 'example-ak'))
+        self.assertEqual(self.app.preferences['baidu_ak'], 'example-ak')
+        self.assertEqual(len(dialog.tree.get_children()), 1)
+        dialog.tree.selection_set('0')
+        dialog.window.update()
+        self.assertEqual(dialog.name.get(), '立信楼')
+        dialog.name.set('山西财经大学-立信楼')
+        dialog.add()
+        self.assertEqual(self.write.call_args.args,
+                         ('locations.local.json', [{'name': '山西财经大学-立信楼', 'longitude': 112.5930636, 'latitude': 37.792118}]))
+        self.assertEqual(self.app.locations[-1]['name'], '山西财经大学-立信楼')
+
+    def test_map_pick_url_prefills_name_and_adds(self):
+        self.app = self.make_app('generic')
+        dialog = self.app.search_location()
+        dialog.coord_text.set('https://map.baidu.com/search/%E7%AB%8B%E4%BF%A1%E6%A5%BC//@12958175,4825923,19z')
+        dialog.add_picked()
+        name, lng, lat = [self.write.call_args.args[1][0][k] for k in ('name', 'longitude', 'latitude')]
+        self.assertEqual(self.write.call_args.args[0], 'locations.local.json')
+        self.assertEqual(name, '立信楼')
+        self.assertAlmostEqual(lng, 116.404, places=3)
+        self.assertAlmostEqual(lat, 39.915, places=3)
+
+    def test_map_pick_rejects_bad_text_without_saving(self):
+        self.app = self.make_app('generic')
+        dialog = self.app.search_location()
+        dialog.coord_text.set('不是坐标')
+        dialog.pick_name.set('楼')
+        self.write.reset_mock()
+        dialog.add_picked()
+        self.write.assert_not_called()
+        self.assertIn('没有识别到坐标', dialog.pick_hint.get())
+
+    def test_search_error_shown_in_dialog(self):
+        self.app = self.make_app('generic')
+        dialog = self.app.search_location()
+        with patch('desktop_ui.threading.Thread') as thread, \
+                patch('desktop_ui.search_places', new_callable=AsyncMock, side_effect=ValueError('请先填写百度地图 AK')):
+            dialog.search()
+            thread.call_args.kwargs['target']()
+            self.app.poll()
+        self.assertEqual(dialog.hint.get(), '请先填写百度地图 AK')
+        self.assertEqual(str(dialog.button.cget('state')), 'normal')
+
     # ===== 窗口适配 =====
     def test_screenshot_app_does_not_read_local_preferences(self):
         from make_screenshots import make_app
