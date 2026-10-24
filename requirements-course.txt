@@ -1,0 +1,5 @@
+# Optional course engine; base sign-in does not require these.
+selenium>=4.15.0
+colorama>=0.4.6
+fonttools>=4.0.0
+openai>=1.0.0

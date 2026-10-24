@@ -63,22 +63,34 @@ def assemble(exe):
             '首次使用阅读用户须知，添加自己的账号和地点；输入完整课程名后可先“仅查询”，再执行“查询并签到”。\n\n'
             'SCUFE 内置山财地点和资料入口；Generic 初始地点为空。两个版本均支持自定义地点。\n\n'
             '账号以明文保存在本机，登录凭据仅用于学习通请求。请勿分享包含个人配置的程序目录。\n\n'
-            '仅支持位置签到；接口或网络变化可能影响功能，结果请在学习通核对。\n\n'
+            '签到功能支持位置签到；课程学习使用独立浏览器进程。接口或网络变化可能影响功能，结果请在学习通核对。\n\n'
+            '课程引擎保留来源的非商业许可，详见 licenses/course-engine-LICENSE.txt 和 docs/COURSE_LEARNING.md。\n\n'
             '[使用教程](docs/USER_GUIDE.md) · [隐私说明](docs/PRIVACY.md) · [免责声明](docs/DISCLAIMER.md)\n\n'
             f'反馈：{REPO_URL}/issues · {CONTACT_EMAIL}\n\n'
             '反馈时请勿发送账号、密码、Cookie、Token、学号或私人配置。\n', encoding='utf-8')
         for filename in ('LICENSE', 'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md'):
             shutil.copy(ROOT / filename, folder / filename)
         (folder / 'docs').mkdir()
-        for filename in ('USER_GUIDE.md', 'PRIVACY.md', 'DISCLAIMER.md'):
+        for filename in ('USER_GUIDE.md', 'PRIVACY.md', 'DISCLAIMER.md', 'COURSE_LEARNING.md'):
             shutil.copy(ROOT / 'docs' / filename, folder / 'docs' / filename)
         licenses = folder / 'licenses'
         licenses.mkdir()
+        shutil.copy(ROOT / 'third_party/course_engine/LICENSE', licenses / 'course-engine-LICENSE.txt')
         runtime = ('aiohttp', 'aiohappyeyeballs', 'aiosignal', 'attrs', 'beautifulsoup4',
                    'frozenlist', 'idna', 'lxml', 'multidict', 'propcache', 'soupsieve',
                    'typing_extensions', 'yarl', 'packaging', 'setuptools', 'pyinstaller')
-        for package in runtime:
-            dist = distribution(package)
+        from importlib.metadata import PackageNotFoundError
+        extras = ('selenium', 'colorama', 'fonttools', 'openai', 'httpx', 'httpcore',
+                  'pydantic', 'pydantic_core', 'anyio', 'sniffio', 'distro', 'jiter',
+                  'tqdm', 'trio', 'trio-websocket', 'urllib3', 'websocket-client',
+                  'certifi', 'wsproto', 'h11', 'outcome', 'sortedcontainers', 'pysocks')
+        for package in runtime + extras:
+            try:
+                dist = distribution(package)
+            except PackageNotFoundError:
+                if package in runtime:
+                    raise
+                continue
             for file in dist.files or ():
                 if any(word in file.name.lower() for word in ('license', 'copying', 'notice')) and not file.name.endswith(('.py', '.pyc')):
                     source = Path(dist.locate_file(file))

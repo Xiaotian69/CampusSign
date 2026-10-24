@@ -13,3 +13,9 @@
 - 上述版本为作者本地验证环境使用的版本，如需更新请先在本机验证签到功能。
 - 各依赖的完整许可证文本分别参见其上游仓库的 LICENSE 文件。
 - 源码仓库不包含第三方二进制文件；Windows 发行包包含 Python、Tcl/Tk 和运行依赖，相关许可证随包保存在 `licenses/` 及内嵌运行时中。
+
+## Xuexitong_shuake course engine
+
+Copyright (c) 2025 Mortal004. Source: https://github.com/Mortal004/Xuexitong_shuake, commit `563bf27c5cb7a3eb659ed7b27b855d5e5c131c7c`.
+
+Adapted files under `third_party/course_engine/` are subject to the full custom **non-commercial-only** [license](third_party/course_engine/LICENSE), not the root MIT license. Preserve that license and copyright with copies. [Adaptation details](third_party/course_engine/README.md).

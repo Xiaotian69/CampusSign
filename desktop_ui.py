@@ -10,9 +10,11 @@ import time
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import webbrowser
+import sys
 
 import app_config
 import disclaimer
+from course_ui import CoursePage
 from desktop_core import read_json, write_json, validate_location, run_batch
 
 
@@ -140,7 +142,7 @@ class App(tk.Tk):
         nav = tk.Frame(self.sidebar, bg=SIDEBAR)
         nav.pack(fill='x', pady=18)
         self.nav_buttons = {}
-        for key, text in [('home', '首页'), ('sign', '签到'), ('places', '地点'),
+        for key, text in [('home', '首页'), ('sign', '签到'), ('courses', '课程学习'), ('places', '地点'),
                           ('resources', '学习资料'), ('help', '帮助'),
                           ('changelog', '更新日志'), ('about', '关于')]:
             btn = ttk.Button(nav, text=text, style='Nav.TButton', command=lambda k=key: self.show_page(k))
@@ -167,6 +169,7 @@ class App(tk.Tk):
         container = self.content
         self.pages['home'] = self._build_home(container)
         self.pages['sign'] = self._build_sign(container)
+        self.pages['courses'] = CoursePage(container, self)
         self.pages['places'] = self._build_places(container)
         self.pages['resources'] = self._build_resources(container)
         self.pages['help'] = self._build_help(container)
@@ -711,6 +714,12 @@ class App(tk.Tk):
             messagebox.showinfo('执行详情', '\n\n'.join(f'{k}：{v}' for k, v in zip(['账号', '课程', '活动', '地点', '结果'], values)))
 
     def close(self):
+        courses = self.pages.get('courses')
+        if courses and courses.runner.running:
+            courses.stop()
+            self.status.set('正在停止课程任务，停止后将关闭窗口')
+            self.after(200, self.close)
+            return
         if self.busy:
             messagebox.showinfo('任务执行中', '请等待当前请求结束后关闭窗口。')
             return
@@ -723,6 +732,9 @@ class App(tk.Tk):
 
 
 if __name__ == '__main__':
+    if '--course-worker' in sys.argv:
+        from course_worker import main as run_course_worker
+        sys.exit(run_course_worker())
     try:
         App().mainloop()
     except Exception as exc:

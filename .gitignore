@@ -25,6 +25,7 @@ _local_backup/
 # 日志
 *.log
 logs/
+course-data/
 
 # 构建与打包产物
 build/
