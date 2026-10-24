@@ -106,4 +106,3 @@ def save_process(course_name,done=0,total=0):
             print(color.green(f'已保存进度：{done}/{total}'), flush=True)
         with open('task/tool/course_process.json', 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
-

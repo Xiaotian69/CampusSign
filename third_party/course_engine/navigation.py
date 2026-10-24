@@ -439,4 +439,3 @@ def run(driver,choice,course_name,API,lock_screen,pass_face,video_title_choice,
             delete_face_popup(driver,pass_face)
             fold(driver)
         time.sleep(1)
-

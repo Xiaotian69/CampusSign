@@ -31,4 +31,3 @@ class Audio(Common):
 def play_audio(driver,iframe_element,course_name):
     audio = Audio(driver,iframe_element,course_name)
     audio.main()
-

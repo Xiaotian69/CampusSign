@@ -57,4 +57,3 @@ class Discussion(Common):
 def finish_discussion(driver,API,iframe_element,discussion_choice,course_name):
     discussion= Discussion(driver,API,iframe_element,discussion_choice,course_name)
     discussion.main()
-

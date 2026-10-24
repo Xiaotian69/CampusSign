@@ -124,5 +124,3 @@ class do_work(Answer):
         for save_element in self.save_elements:
             if save_element.text == '暂时保存':
                 save_element.click()
-
-
