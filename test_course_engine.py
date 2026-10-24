@@ -67,4 +67,87 @@ class CourseWorkerTests(unittest.TestCase):
             self.assertEqual(asyncio.run(ai_wen_da.main("单选题", "问题", [], "")), [])
             ask.assert_not_called()
 
+class CourseSessionTests(unittest.TestCase):
+    def events(self, text):
+        return [json.loads(line[len(worker.EVENT_PREFIX):]) for line in text.splitlines()
+                if line.startswith(worker.EVENT_PREFIX)]
+
+    def test_session_logs_in_lists_courses_then_runs_on_command(self):
+        from third_party.course_engine import adapter
+        from unittest.mock import Mock
+        driver = Mock()
+        commands = io.StringIO(json.dumps({"cmd": "run", "config": {"courses": ["课程甲"]}}) + "\n"
+                               + json.dumps({"cmd": "quit"}) + "\n")
+        out = io.StringIO()
+        payload = {"mode": "session", "login_mode": "account", "account": {"uname": "student", "password": "secret"}}
+        with tempfile.TemporaryDirectory() as folder, patch("course_worker.Path.cwd", return_value=Path(folder)), \
+                patch.object(adapter, "create_driver", return_value=driver), patch.object(adapter, "login") as login, \
+                patch.object(adapter, "list_courses", return_value=["课程甲", "课程乙"]), \
+                patch.object(adapter, "run_courses", return_value=[("课程甲", "已遍历")]) as run:
+            self.assertEqual(worker.run_session(payload, commands, out), 0)
+        login.assert_called_once()
+        self.assertEqual(run.call_args.args[1]["courses"], ["课程甲"])
+        states = [e.get("state") for e in self.events(out.getvalue()) if e["event"] == "state"]
+        self.assertEqual(states, ["driver", "waiting_login", "loading_courses", "ready", "running", "ready"])
+        self.assertIn({"event": "courses", "items": ["课程甲", "课程乙"]}, self.events(out.getvalue()))
+        driver.quit.assert_called_once()
+        self.assertNotIn("secret", out.getvalue())
+
+    def test_session_does_not_run_courses_before_command(self):
+        from third_party.course_engine import adapter
+        from unittest.mock import Mock
+        with patch.object(adapter, "create_driver", return_value=Mock()), patch.object(adapter, "login"), \
+                patch.object(adapter, "list_courses", return_value=[]), patch.object(adapter, "run_courses") as run:
+            self.assertEqual(worker.run_session({"mode": "session"}, io.StringIO(""), io.StringIO()), 0)
+        run.assert_not_called()
+
+    def test_session_browser_failure_is_reported(self):
+        from third_party.course_engine import adapter
+        out = io.StringIO()
+        error = adapter.BrowserStartError("无法启动浏览器（微软 Edge：NoSuchDriverException）。")
+        with patch.object(adapter, "create_driver", side_effect=error):
+            self.assertEqual(worker.run_session({"mode": "session"}, io.StringIO(""), out), 1)
+        self.assertIn({"event": "error", "message": str(error)}, self.events(out.getvalue()))
+
+    def test_session_login_timeout_closes_browser(self):
+        from third_party.course_engine import adapter
+        from unittest.mock import Mock
+        driver, out = Mock(), io.StringIO()
+        with patch.object(adapter, "create_driver", return_value=driver), \
+                patch.object(adapter, "login", side_effect=TimeoutError("等待登录超时")):
+            self.assertEqual(worker.run_session({"mode": "session"}, io.StringIO(""), out), 1)
+        driver.quit.assert_called_once()
+        self.assertIn("超时", out.getvalue())
+
+    def test_session_rejects_account_mode_without_password(self):
+        out = io.StringIO()
+        payload = {"mode": "session", "login_mode": "account", "account": {"uname": "student"}}
+        self.assertEqual(worker.run_session(payload, io.StringIO(""), out), 1)
+        self.assertIn("缺少账号或密码", out.getvalue())
+
+    def test_error_description_never_includes_exception_text(self):
+        self.assertNotIn("secret", worker.describe_error(RuntimeError("password=secret")))
+
+    def test_auto_browser_falls_back_to_chrome(self):
+        from third_party.course_engine import adapter
+        from selenium.common import WebDriverException
+        from unittest.mock import Mock
+        driver = Mock()
+        with patch.object(adapter, "_create", side_effect=[WebDriverException("x"), driver]) as create:
+            self.assertIs(adapter.create_driver({"browser": "auto", "driver_path": ""}), driver)
+        self.assertEqual([c.args[0] for c in create.call_args_list], ["edge", "chrome"])
+        with patch.object(adapter, "_create", side_effect=WebDriverException("x")):
+            with self.assertRaises(adapter.BrowserStartError):
+                adapter.create_driver({"browser": "edge", "driver_path": ""})
+
+    def test_one_failed_course_does_not_stop_session_queue(self):
+        from third_party.course_engine import adapter
+        from unittest.mock import Mock
+        config = worker.validate_config({"account": {}, "login_mode": "qr", "courses": ["课程甲", "课程乙"]})
+        with patch.object(adapter, "run_course", side_effect=[RuntimeError("未找到课程页面"), None]), \
+                patch.object(adapter, "browser_alive", return_value=True):
+            results = adapter.run_courses(Mock(), config, keep_going=True)
+        self.assertEqual(results, [("课程甲", "失败：未找到课程页面"), ("课程乙", "已遍历")])
+
+
 if __name__ == "__main__": unittest.main()

@@ -121,8 +121,71 @@ class UiTests(unittest.TestCase):
 
     def test_disclaimer_skipped_when_accepted(self):
         self.settings['disclaimer_accepted'] = True
+        self.settings['disclaimer_version'] = desktop_ui.disclaimer.DISCLAIMER_VERSION
         self.app = self.make_app('scufe', config_extra={'dev_mode': False})
         self.assertFalse(self.app.disclaimer_needed())
+
+    def test_disclaimer_shown_once_more_after_content_update(self):
+        self.settings['disclaimer_accepted'] = True  # 旧版本只保存了布尔值
+        self.app = self.make_app('scufe', config_extra={'dev_mode': False})
+        self.assertTrue(self.app.disclaimer_needed())
+
+    def _real_disclaimer(self, action, area=(0, 0, 800, 480), continue_text='同意并继续'):
+        """在很矮的屏幕上打开真实须知窗口，执行 action(win) 后返回 (结果, 观测)。"""
+        self.app = self.make_app('scufe', config_extra={'dev_mode': False})
+        self._disclaimer_patch.stop()
+        for timer in self.app.tk.call('after', 'info'):  # 取消启动时自动弹出的须知
+            self.app.after_cancel(timer)
+        self.app.deiconify()
+        seen = {}
+
+        def probe():
+            win = [w for w in self.app.winfo_children() if isinstance(w, tk.Toplevel)][0]
+            win.update()
+            buttons = [w for w in win.winfo_children()[0].winfo_children()]
+            seen['buttons'] = [b.cget('text') for b in buttons]
+            seen['visible'] = all(b.winfo_viewable() and
+                                  b.winfo_y() + b.winfo_height() + b.master.winfo_y() <= win.winfo_height()
+                                  for b in buttons)
+            seen['fits'] = win.winfo_height() <= area[3] and win.winfo_width() <= area[2]
+            action(win, buttons)
+        self.app.after(200, probe)
+        with patch('window_utils.work_area', return_value=area):
+            result = self.app._show_disclaimer(True, continue_text)
+        return result, seen
+
+    def test_disclaimer_buttons_visible_on_small_screen_and_accept_continues(self):
+        result, seen = self._real_disclaimer(lambda win, buttons: buttons[-1].invoke())
+        self.assertTrue(seen['visible'])
+        self.assertTrue(seen['fits'])
+        self.assertEqual(seen['buttons'], ['取消', '同意并继续'])
+        self.assertTrue(result)
+        self.assertFalse(self.app.disclaimer_needed())
+        saved = self.write.call_args.args[1]
+        self.assertEqual(saved['disclaimer_version'], desktop_ui.disclaimer.DISCLAIMER_VERSION)
+
+    def test_disclaimer_close_button_counts_as_cancel(self):
+        result, _ = self._real_disclaimer(lambda win, buttons: win.tk.call(win.protocol('WM_DELETE_WINDOW')))
+        self.assertFalse(result)
+        self.assertTrue(self.app.disclaimer_needed())
+        self.write.assert_not_called()
+
+    def test_disclaimer_cancel_keeps_app_open(self):
+        result, _ = self._real_disclaimer(lambda win, buttons: buttons[0].invoke())
+        self.assertFalse(result)
+        self.assertTrue(self.app.winfo_exists())
+
+    def test_disclaimer_save_failure_is_reported_but_session_continues(self):
+        self.write.side_effect = OSError('read-only')
+        with patch('desktop_ui.messagebox.showwarning') as warning:
+            result, _ = self._real_disclaimer(lambda win, buttons: buttons[-1].invoke())
+        self.assertTrue(result)
+        warning.assert_called_once()
+        self.assertFalse(self.app.disclaimer_needed())
+
+    def test_startup_disclaimer_offers_quit(self):
+        _, seen = self._real_disclaimer(lambda win, buttons: buttons[-1].invoke(), continue_text=None)
+        self.assertEqual(seen['buttons'], ['退出程序', '我已阅读并同意'])
 
     def test_ensure_disclaimer_shows_when_needed(self):
         self.app = self.make_app('scufe', config_extra={'dev_mode': False})

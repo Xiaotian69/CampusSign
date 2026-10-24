@@ -16,6 +16,7 @@ import app_config
 import disclaimer
 from course_ui import CoursePage
 from desktop_core import read_json, write_json, validate_location, run_batch
+from window_utils import place_in_work_area
 
 
 # ===== 主题色（浅色现代风） =====
@@ -416,26 +417,60 @@ class App(tk.Tk):
 
     # ================= 首次须知 =================
     def disclaimer_needed(self):
-        return (not self.dev_mode) and (not self.preferences.get('disclaimer_accepted'))
+        if self.dev_mode:
+            return False
+        accepted = self.preferences.get('disclaimer_accepted')
+        # 旧版本只保存了布尔值，视为第 1 版。
+        version = self.preferences.get('disclaimer_version', 1)
+        return not (accepted and version >= disclaimer.DISCLAIMER_VERSION)
 
-    def _ensure_disclaimer(self):
-        if self.disclaimer_needed():
-            self._show_disclaimer(True)
+    def _ensure_disclaimer(self, continue_text=None):
+        """返回 True 表示已同意，可以继续；continue_text 表示由某个操作触发。"""
+        if not self.disclaimer_needed():
+            return True
+        accepted = bool(self._show_disclaimer(True, continue_text))
+        if not accepted:
+            self.status.set('尚未同意用户须知 · 开始课程任务前会再次显示')
+        return accepted
 
-    def _show_disclaimer(self, blocking):
+    def _show_disclaimer(self, blocking, continue_text=None):
+        """显示须知；阻塞模式返回是否同意。右上角关闭等同于取消。"""
+        result = {'accepted': not blocking}
         win = tk.Toplevel(self)
+        win.withdraw()
         win.title(disclaimer.DISCLAIMER_TITLE)
         win.transient(self)
-        win.grab_set()
         win.configure(bg=CARD)
-        win.geometry('640x560')
+
+        def decline():
+            result['accepted'] = False
+            win.destroy()
+
+        def accept():
+            self._accept_disclaimer(win)
+            result['accepted'] = True
+
+        # 先放底部按钮：窗口变矮时只压缩正文，按钮始终可见。
+        footer = tk.Frame(win, bg=CARD)
+        footer.pack(side='bottom', fill='x', padx=24, pady=16)
+        if blocking:
+            if continue_text:
+                ttk.Button(footer, text='取消', command=decline).pack(side='left')
+            else:
+                ttk.Button(footer, text='退出程序', command=lambda: self._quit_app(win)).pack(side='left')
+            ttk.Button(footer, text=continue_text or '我已阅读并同意', style='Accent.TButton',
+                       command=accept).pack(side='right')
+            win.protocol('WM_DELETE_WINDOW', decline)
+        else:
+            ttk.Button(footer, text='关闭', command=win.destroy).pack(side='right')
 
         tk.Label(win, text=disclaimer.DISCLAIMER_TITLE, bg=CARD, fg=TEXT, font=(FONT, 16, 'bold')).pack(anchor='w', padx=24, pady=(20, 4))
-        tk.Label(win, text=disclaimer.DISCLAIMER_INTRO, bg=CARD, fg=MUTED, font=(FONT, 10), wraplength=580, justify='left').pack(anchor='w', padx=24, pady=(0, 8))
+        tk.Label(win, text=disclaimer.DISCLAIMER_INTRO.replace(' ', '\u00a0'), bg=CARD, fg=MUTED, font=(FONT, 10), wraplength=560, justify='left').pack(anchor='w', padx=24, pady=(0, 8))
 
         body = tk.Frame(win, bg=CARD)
         body.pack(fill='both', expand=True, padx=24, pady=4)
-        text = tk.Text(body, bg=CARD, fg=TEXT, font=(FONT, 10), wrap='word', relief='flat', borderwidth=0)
+        text = tk.Text(body, bg=CARD, fg=TEXT, font=(FONT, 10), wrap='word', relief='flat', borderwidth=0,
+                       width=64, height=14)
         text.pack(side='left', fill='both', expand=True)
         scrollbar = ttk.Scrollbar(body, command=text.yview)
         scrollbar.pack(side='right', fill='y')
@@ -447,22 +482,22 @@ class App(tk.Tk):
         text.tag_configure('body', font=(FONT, 10), foreground=TEXT, spacing3=4, lmargin1=16, lmargin2=16)
         text.configure(state='disabled')
 
-        footer = tk.Frame(win, bg=CARD)
-        footer.pack(fill='x', padx=24, pady=16)
-        if blocking:
-            ttk.Button(footer, text='退出程序', command=lambda: self._quit_app(win)).pack(side='left')
-            ttk.Button(footer, text='我已阅读并理解', style='Accent.TButton', command=lambda: self._accept_disclaimer(win)).pack(side='right')
-        else:
-            ttk.Button(footer, text='关闭', command=win.destroy).pack(side='right')
-
+        place_in_work_area(self, win)
+        win.deiconify()
+        win.lift()
+        win.grab_set()
+        win.focus_set()
         win.wait_window()
+        return result['accepted']
 
     def _accept_disclaimer(self, win):
         self.preferences['disclaimer_accepted'] = True
+        self.preferences['disclaimer_version'] = disclaimer.DISCLAIMER_VERSION
         try:
             write_json('ui.local.json', self.preferences)
         except OSError:
-            pass
+            messagebox.showwarning('未能保存', '已同意本次使用，但无法写入 ui.local.json，'
+                                   '下次启动会再次显示用户须知。请检查程序所在文件夹的写入权限。', parent=win)
         win.destroy()
 
     def _quit_app(self, win=None):
