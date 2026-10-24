@@ -19,10 +19,9 @@ def smoke(exe_path, edition):
         print(f'[失败] {edition} 版 exe 启动后退出，退出码 {proc.returncode}')
         return False
     print(f'[存活] {edition} 版 exe 正常运行')
-    proc.terminate()
-    time.sleep(1)
-    if proc.poll() is None:
-        subprocess.run(['taskkill', '/F', '/IM', 'CxSign.exe'], capture_output=True)
+    # 单文件 exe 会再启动一个子进程，必须结束整个进程树，否则窗口会残留。
+    subprocess.run(['taskkill', '/PID', str(proc.pid), '/T', '/F'], capture_output=True)
+    proc.wait(timeout=10)
     return True
 
 

@@ -84,7 +84,9 @@ def assemble(exe):
         extras = ('selenium', 'colorama', 'fonttools', 'openai', 'httpx', 'httpcore',
                   'pydantic', 'pydantic_core', 'anyio', 'sniffio', 'distro', 'jiter',
                   'tqdm', 'trio', 'trio-websocket', 'urllib3', 'websocket-client',
-                  'certifi', 'wsproto', 'h11', 'outcome', 'sortedcontainers', 'pysocks')
+                  'certifi', 'wsproto', 'h11', 'outcome', 'sortedcontainers', 'pysocks',
+                  'httpx2', 'httpcore2', 'annotated-types', 'typing-inspection', 'cffi',
+                  'pycparser', 'truststore')
         for package in runtime + extras:
             try:
                 dist = distribution(package)
