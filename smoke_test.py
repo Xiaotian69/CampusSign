@@ -6,8 +6,6 @@ from pathlib import Path
 
 from app_config import APP_VERSION
 
-from app_config import APP_VERSION
-
 ROOT = Path(__file__).resolve().parent
 RELEASE = ROOT / 'release'
 

@@ -1,7 +1,8 @@
 # 发布检查清单
 
 - 检查 main 的工作区、全部可达提交、配置模板、双 Edition 和文档。
-- 用独立虚拟环境安装 requirements.txt，运行 `python -m unittest test_desktop test_desktop_ui -v`。
+- 用独立虚拟环境安装 requirements.txt 与 requirements-course.txt，运行 `python -m unittest test_desktop test_desktop_ui test_place_search test_course_runner test_course_ui test_course_engine -v`。
+- 打包环境必须装齐课程依赖，否则 EXE 中的课程学习页可以打开但无法启动浏览器；打包后用 `CxSign.exe --course-worker` 检查工作进程分发。
 - 扫描 Git 文件及历史内容和提交元数据；人工检查截图。私人配置、日志、构建目录和备份不提交。
 - README 的版本与下载链接应与 Release 一致；SCUFE 与 Generic 共用核心。
 - 上传前检查文件及提交隐私；发布后从远端重新获取 main 和发行包再次检查。

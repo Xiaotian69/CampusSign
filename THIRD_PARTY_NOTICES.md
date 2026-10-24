@@ -1,12 +1,21 @@
 # 第三方组件声明（THIRD_PARTY_NOTICES）
 
-本项目使用以下第三方 Python 库，均按其各自许可证授权。本项目的代码本身按 `LICENSE`（MIT）授权。
+本项目使用以下第三方 Python 库，均按其各自许可证授权。本项目自有代码按 `LICENSE`（MIT）授权；`third_party/course_engine/` 另有非商业许可，见下文。
 
 | 依赖 | 版本 | 用途 | 许可证 |
 | --- | --- | --- | --- |
 | [aiohttp](https://github.com/aio-libs/aiohttp) | 3.14.3 | 异步 HTTP 客户端 | Apache License 2.0 |
 | [lxml](https://lxml.de/) | 6.1.3 | HTML/XML 解析 | BSD-3-Clause |
 | [beautifulsoup4](https://www.crummy.com/software/BeautifulSoup/) | 4.15.0 | HTML 解析封装 | MIT License |
+
+课程学习（可选）额外使用，源码运行时通过 `requirements-course.txt` 安装，Windows 发行包已内置：
+
+| 依赖 | 版本 | 用途 | 许可证 |
+| --- | --- | --- | --- |
+| [selenium](https://github.com/SeleniumHQ/selenium) | 4.51.0 | 浏览器自动化与驱动管理 | Apache License 2.0 |
+| [openai](https://github.com/openai/openai-python) | 3.37.0 | 调用用户自备 Key 的 DeepSeek 兼容接口 | Apache License 2.0 |
+| [colorama](https://github.com/tartley/colorama) | 0.4.6 | 日志着色 | BSD-3-Clause |
+| [fonttools](https://github.com/fonttools/fonttools) | 4.67.0 | 题目字体解析 | MIT License |
 
 ## 说明
 

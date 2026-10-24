@@ -125,6 +125,20 @@ class UiTests(unittest.TestCase):
         self.app = self.make_app('scufe', config_extra={'dev_mode': False})
         self.assertFalse(self.app.disclaimer_needed())
 
+    def test_long_pages_scroll_to_last_item(self):
+        self.app = self.make_app('generic')
+        self.app.geometry('920x640')
+        self.app.deiconify()
+        for page, last in (('help', '课程学习（可选）'), ('changelog', 'v1.0.0  (2026-09)')):
+            self.app.show_page(page)
+            self.app.update()
+            self.assertIn(last, collect_texts(self.app.pages[page]))
+            canvas = next(w for w in self.app.pages[page].winfo_children()[-1].winfo_children()
+                          if isinstance(w, tk.Canvas))
+            canvas.yview_moveto(1.0)
+            self.app.update()
+            self.assertEqual(canvas.yview()[1], 1.0)
+
     def test_disclaimer_shown_once_more_after_content_update(self):
         self.settings['disclaimer_accepted'] = True  # 旧版本只保存了布尔值
         self.app = self.make_app('scufe', config_extra={'dev_mode': False})

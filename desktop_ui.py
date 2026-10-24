@@ -51,6 +51,23 @@ FONT = 'Microsoft YaHei UI'
 # ===== 更新日志（与 CHANGELOG.md 保持一致） =====
 CHANGELOG = [
     {
+        'version': 'v1.2.0',
+        'date': '2026-10',
+        'sections': [
+            ('新增', [
+                '课程学习（可选）：在官方浏览器扫码登录后读取课程列表，选择课程后自动播放和翻页处理章节任务',
+                '课程学习高级设置：倍速、定时、并行、保持唤醒；答题、AI 讨论和自动提交默认关闭',
+            ]),
+            ('优化', [
+                '用户须知窗口按屏幕可用区域自适应，按钮始终可见；同意后直接继续当前操作',
+                '用户须知补充课程学习说明，已同意旧版的用户会再看到一次',
+            ]),
+            ('修复', [
+                '高分屏或小屏幕下用户须知的确认按钮被挤出窗口，导致无法进入登录',
+            ]),
+        ],
+    },
+    {
         'version': 'v1.1.0',
         'date': '2026-10',
         'sections': [
@@ -411,7 +428,7 @@ class App(tk.Tk):
         ttk.Button(feedback, text='GitHub Issues', command=lambda: webbrowser.open(app_config.ISSUES_URL)).pack(side='left')
         ttk.Button(feedback, text=app_config.CONTACT_EMAIL, command=lambda: webbrowser.open('mailto:' + app_config.CONTACT_EMAIL)).pack(side='left', padx=8)
         steps = [
-            ('第一次使用', '首次启动会展示《用户须知》，点击「我已阅读并理解」进入主程序。'),
+            ('第一次使用', '首次启动会展示《用户须知》，点击「我已阅读并同意」进入主程序。'),
             ('填写账号', '在「签到」页点击「添加 / 更新账号」，输入学习通账号与密码（手机号登录时学校 ID 留空）。账号仅保存在本机。'),
             ('添加地点', '在「地点」页点击「搜索添加地点」：「地图选点」页无需注册，在百度地图网页搜到楼后复制网址粘贴即可识别坐标；有百度 AK 也可用「关键词搜索」页。也可点击「添加 / 更新地点」手动填写完整地点名称与百度经纬度。'),
             ('选择签到地点', '在「签到」页选择「固定位置」并挑选地点，或选择「按指定地点匹配」。'),
@@ -420,25 +437,48 @@ class App(tk.Tk):
             ('常见错误', '网络失败会提示检查网络；登录失败请核对账号密码；地点不匹配请核对地点名称与坐标。'),
             ('反馈问题', '请勿发送账号、密码、Cookie、Token、学号或私人配置；截图请遮挡个人信息。'),
             ('更新', '前往 GitHub Releases 下载新版本，或从源码运行 git pull 更新。'),
+            ('课程学习（可选）', '在「课程学习」页点击「登录学习通」并在浏览器扫码，选择课程后点击「开始」；默认只播放和翻页，答题与提交选项在「高级设置」中且默认关闭。'),
         ]
-        for title, body in steps:
-            tk.Label(page, text=title, bg=CARD, fg=TEXT, font=(FONT, 11, 'bold')).pack(anchor='w', pady=(12, 2))
-            tk.Label(page, text=body, bg=CARD, fg=MUTED, font=(FONT, 10), wraplength=760, justify='left').pack(anchor='w')
-        tk.Label(page, text='完整教程见仓库 docs/USER_GUIDE.md。', bg=CARD, fg=MUTED, font=(FONT, 9)).pack(anchor='w', pady=(16, 0))
+        body = self._scroll_area(page)
+        for title, text in steps:
+            tk.Label(body, text=title, bg=CARD, fg=TEXT, font=(FONT, 11, 'bold')).pack(anchor='w', pady=(12, 2))
+            tk.Label(body, text=text, bg=CARD, fg=MUTED, font=(FONT, 10), wraplength=760, justify='left').pack(anchor='w')
+        tk.Label(body, text='完整教程见仓库 docs/USER_GUIDE.md。', bg=CARD, fg=MUTED, font=(FONT, 9)).pack(anchor='w', pady=(16, 0))
         return page
+
+    def _scroll_area(self, page):
+        """在页面剩余空间放一个可滚动区域，内容超出窗口高度时可用滚轮或滚动条查看。"""
+        outer = tk.Frame(page, bg=CARD)
+        outer.pack(fill='both', expand=True)
+        canvas = tk.Canvas(outer, bg=CARD, highlightthickness=0, bd=0)
+        bar = ttk.Scrollbar(outer, orient='vertical', command=canvas.yview)
+        body = tk.Frame(canvas, bg=CARD)
+        item = canvas.create_window((0, 0), window=body, anchor='nw')
+        canvas.configure(yscrollcommand=bar.set)
+        body.bind('<Configure>', lambda _: canvas.configure(scrollregion=canvas.bbox('all')))
+        canvas.bind('<Configure>', lambda e: canvas.itemconfigure(item, width=e.width))
+        bar.pack(side='right', fill='y')
+        canvas.pack(side='left', fill='both', expand=True)
+
+        def wheel(event):
+            canvas.yview_scroll(int(-event.delta / 120), 'units')
+        outer.bind('<Enter>', lambda _: outer.bind_all('<MouseWheel>', wheel))
+        outer.bind('<Leave>', lambda _: outer.unbind_all('<MouseWheel>'))
+        return body
 
     # ---- 更新日志页 ----
     def _build_changelog(self, parent):
         page = tk.Frame(parent, bg=CARD)
         self._page_title(page, '更新日志', '当前版本更新内容。')
+        body = self._scroll_area(page)
         for entry in CHANGELOG:
-            tk.Label(page, text=f"{entry['version']}  ({entry['date']})", bg=CARD, fg=TEXT, font=(FONT, 14, 'bold')).pack(anchor='w', pady=(8, 4))
+            tk.Label(body, text=f"{entry['version']}  ({entry['date']})", bg=CARD, fg=TEXT, font=(FONT, 14, 'bold')).pack(anchor='w', pady=(8, 4))
             for section, items in entry['sections']:
                 if not items:
                     continue
-                tk.Label(page, text=section, bg=CARD, fg=ACCENT, font=(FONT, 10, 'bold')).pack(anchor='w', pady=(6, 2))
+                tk.Label(body, text=section, bg=CARD, fg=ACCENT, font=(FONT, 10, 'bold')).pack(anchor='w', pady=(6, 2))
                 for it in items:
-                    tk.Label(page, text='· ' + it, bg=CARD, fg=TEXT, font=(FONT, 10), wraplength=760, justify='left').pack(anchor='w', pady=1)
+                    tk.Label(body, text='· ' + it, bg=CARD, fg=TEXT, font=(FONT, 10), wraplength=760, justify='left').pack(anchor='w', pady=1)
         return page
 
     # ---- 关于页 ----
@@ -448,7 +488,7 @@ class App(tk.Tk):
         tk.Label(page, text=app_config.APP_NAME, bg=CARD, fg=TEXT, font=(FONT, 24, 'bold')).pack(anchor='w', pady=(8, 0))
         tk.Label(page, text=f"版本 v{app_config.APP_VERSION} · {self.profile.get('display_name', '')}",
                  bg=CARD, fg=MUTED, font=(FONT, 11)).pack(anchor='w', pady=(2, 10))
-        tk.Label(page, text='一个第三方开源学习与技术交流项目，提供学习通位置签到桌面工具。',
+        tk.Label(page, text='一个第三方开源学习与技术交流项目，提供学习通位置签到桌面工具，以及可选的课程学习功能。',
                  bg=CARD, fg=TEXT, font=(FONT, 10), wraplength=760, justify='left').pack(anchor='w', pady=(0, 14))
         links = [
             ('GitHub 仓库', app_config.REPO_URL),

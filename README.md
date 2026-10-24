@@ -10,7 +10,7 @@
 ![Local only](https://img.shields.io/badge/数据-仅存本机-16a34a)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0b7a75)](LICENSE)
 
-[⬇️ 下载通用版](https://github.com/Xiaotian69/CampusSign/releases/download/v1.1.0/CxSign-v1.1.0-Generic.zip) · [使用教程](docs/USER_GUIDE.md) · [隐私说明](docs/PRIVACY.md) · [常见问题](#常见问题) · [English](#english-summary)
+[⬇️ 下载通用版](https://github.com/Xiaotian69/CampusSign/releases/download/v1.2.0/CxSign-v1.2.0-Generic.zip) · [使用教程](docs/USER_GUIDE.md) · [隐私说明](docs/PRIVACY.md) · [常见问题](#常见问题) · [English](#english-summary)
 
 </div>
 
@@ -18,9 +18,11 @@
 
 <sub>截图使用占位账号、示例课程与示例地点，不含任何真实数据。</sub>
 
-CxSign 是一个 Windows 图形界面工具，专注做一件事：**学习通位置签到**。不需要命令行，也不需要手动查经纬度：添加账号，刷新课程，选择地点，点击「查询并签到」，结果按账号逐行列出。适用于任何学校，山西财经大学同学可以使用内置地点的 [SCUFE Edition](#高校预设--scufe-edition)。
+CxSign 是一个 Windows 图形界面工具，核心功能是**学习通位置签到**。不需要命令行，也不需要手动查经纬度：添加账号，刷新课程，选择地点，点击「查询并签到」，结果按账号逐行列出。适用于任何学校，山西财经大学同学可以使用内置地点的 [SCUFE Edition](#高校预设--scufe-edition)。
 
-> **使用方式说明**：每次签到都需要你**手动点击按钮**触发，程序只对当时「进行中」的位置签到执行一次。它**不会**在后台定时运行、无人值守监听或自动抢签到，也**不会**绕过学习通的任何验证。
+v1.2.0 新增可选的 **[课程学习](#课程学习可选v120-新增)**：在官方浏览器扫码登录后选择课程，自动播放和翻页处理章节任务。它与签到相互独立，答题和提交相关选项默认关闭。
+
+> **签到的使用方式**：每次签到都需要你**手动点击按钮**触发，程序只对当时「进行中」的位置签到执行一次。它**不会**在后台定时运行、无人值守监听或自动抢签到，也**不会**绕过学习通的任何验证。
 
 ## 签到流程
 
@@ -47,26 +49,27 @@ CxSign 是一个 Windows 图形界面工具，专注做一件事：**学习通�
 | 🗺️ **地点管理** | 地图选点（粘贴百度地图网址，本机离线识别坐标，无需注册）、关键词搜索（需自备百度 AK）、粘贴经纬度（支持 BD-09 / GCJ-02 / WGS-84）、手动添加、导入与导出 JSON |
 | 🏫 **通用高校适配** | Generic Edition 不带任何学校预设，任何学校都可以建立自己的地点库；支持手机号登录，学号登录时填写学校 ID |
 | 🔍 **仅查询** | 只读取活动和状态，不提交签到，适合先确认课程和地点是否正确 |
+| 🎬 **课程学习（可选）** | 官方浏览器扫码登录 → 读取课程列表 → 自动播放视频 / 音频 / PPT / 阅读并翻页；倍速、定时、并行可在高级设置中调整，详见[下文](#课程学习可选v120-新增) |
 | 🔒 **本地数据** | 账号、地点和偏好只写入程序目录下的本地文件；没有开发者服务器、遥测或广告 |
 
-> 只支持位置签到。普通签到、拍照、签到码、二维码、人脸等类型会在结果中提示「暂不支持此签到类型」。
+> 签到只支持位置签到。普通签到、拍照、签到码、二维码、人脸等类型会在结果中提示「暂不支持此签到类型」。
 
 ## 下载与安装
 
-前往 [GitHub Releases](https://github.com/Xiaotian69/CampusSign/releases/latest) 下载最新版（当前 v1.1.0，Windows x64）：
+前往 [GitHub Releases](https://github.com/Xiaotian69/CampusSign/releases/latest) 下载最新版（当前 v1.2.0，Windows x64）：
 
 | 版本 | 适合谁 | 下载 |
 | --- | --- | --- |
-| **Generic Edition（通用版，推荐）** | 所有学校。初始地点库为空，自行添加本校地点 | [CxSign-v1.1.0-Generic.zip](https://github.com/Xiaotian69/CampusSign/releases/download/v1.1.0/CxSign-v1.1.0-Generic.zip) |
-| SCUFE Edition（山西财经大学版） | 山西财经大学同学。额外内置山财地点与学习资料入口 | [CxSign-v1.1.0-SCUFE.zip](https://github.com/Xiaotian69/CampusSign/releases/download/v1.1.0/CxSign-v1.1.0-SCUFE.zip) |
+| **Generic Edition（通用版，推荐）** | 所有学校。初始地点库为空，自行添加本校地点 | [CxSign-v1.2.0-Generic.zip](https://github.com/Xiaotian69/CampusSign/releases/download/v1.2.0/CxSign-v1.2.0-Generic.zip) |
+| SCUFE Edition（山西财经大学版） | 山西财经大学同学。额外内置山财地点与学习资料入口 | [CxSign-v1.2.0-SCUFE.zip](https://github.com/Xiaotian69/CampusSign/releases/download/v1.2.0/CxSign-v1.2.0-SCUFE.zip) |
 
 1. 下载 zip 并解压到一个独立文件夹；
 2. 双击 `CxSign.exe`；
-3. 第一次启动时阅读《用户须知》，点击「我已阅读并理解」。
+3. 第一次启动时阅读《用户须知》，点击「我已阅读并同意」。
 
 两个版本共用同一套签到核心，SCUFE Edition 同样可以添加任何其他地点。
 
-**从 v1.0.0 升级**：把新版解压到新文件夹，再把旧目录里的 `user.json`、`locations.local.json`、`ui.local.json`（有哪个复制哪个）复制到新版 `CxSign.exe` 所在目录，即可保留账号、地点和偏好。
+**从旧版本升级**：把新版解压到新文件夹，再把旧目录里的 `user.json`、`locations.local.json`、`ui.local.json`（有哪个复制哪个）复制到新版 `CxSign.exe` 所在目录，即可保留账号、地点和偏好。
 
 ## 快速上手
 
@@ -86,6 +89,26 @@ CxSign 是一个 Windows 图形界面工具，专注做一件事：**学习通�
 | ![粘贴百度地图网址后自动识别坐标](screenshots/pick_scufe.png) | ![Generic Edition 地点管理](screenshots/places_generic.png) |
 
 <sub>地图选点会拒绝缩放级别低于 18 级的网址，避免存入偏差几百米的坐标。</sub>
+
+## 课程学习（可选，v1.2.0 新增）
+
+```text
+登录学习通（浏览器扫码） → 选择课程 → 开始 → 查看状态 / 停止
+```
+
+![CxSign 课程学习页：登录、课程列表、运行与当前设置](screenshots/courses_generic.png)
+
+1. 在「课程学习」页点击「登录学习通」，在弹出的浏览器里扫码登录。不需要先保存账号密码。
+2. 登录后自动读取「我学的课」，选择一门或多门课程；读取失败时可手动输入课程名。
+3. 点击「开始」，程序会自动播放视频、音频、PPT 和阅读并翻页。点击「停止」会关闭本次打开的浏览器，不影响你自己的浏览器。
+
+默认设置是扫码登录、1 倍速、单门课程、不答题、跳过讨论、测验只保存不提交。「高级设置…」里可以调整账号密码登录、浏览器 / 驱动、倍速、定时、同时运行 1–3 门，以及章节测验和讨论辅助（自备 DeepSeek API Key 或随机答题）。选择「自动提交」会正式交卷且不可撤回；作业模式始终只保存。
+
+- 学习通的页面结构可能变化，导致课程或任务识别失败。完成情况以学习通页面为准。
+- 遇到人脸等官方验证时，需要你在官方页面完成。程序不会绕过任何验证。
+- 自动化学习可能违反学校或平台规定，请自行确认后再使用。
+
+完整说明见 [docs/COURSE_LEARNING.md](docs/COURSE_LEARNING.md)。
 
 ## 两种位置模式怎么选
 
@@ -128,6 +151,7 @@ SCUFE Edition 是为山西财经大学同学准备的附加版本，签到能力
 | 地点库 | 本机 `locations.local.json` | 签到时把选中坐标发送给学习通平台 |
 | 课程名、位置模式、百度 AK 等偏好 | 本机 `ui.local.json` | 百度 AK 只在「关键词搜索」时随关键词、城市一起发送给百度地图开放平台 |
 | 地图选点粘贴的网址 / 坐标 | 不单独保存 | 不联网，在本机离线换算 |
+| 课程学习设置与运行记录 | 本机 `ui.local.json`、`course-data/`（不含密码） | 登录在学习通官方页面完成；只有启用 DeepSeek AI 时才把题目和你的 API Key 发给 DeepSeek，Key 不保存 |
 
 - 本项目**没有开发者服务器**，不收集、不上传任何账号数据；不含遥测、统计、广告或第三方分析 SDK。
 - 本地文件**不是加密保险库**：请勿在公共电脑保存账号，也不要把整个程序文件夹分享给他人。
@@ -169,6 +193,7 @@ SCUFE Edition 是为山西财经大学同学准备的附加版本，签到能力
 git clone https://github.com/Xiaotian69/CampusSign.git
 cd CampusSign
 pip install -r requirements.txt
+pip install -r requirements-course.txt   # 可选：课程学习
 python desktop_ui.py
 ```
 
@@ -179,18 +204,19 @@ Windows 下也可以双击 `start_windows.vbs` 静默启动（优先使用 `.ven
 运行离线测试（不连接学习通、不提交签到）：
 
 ```bash
-python -m unittest test_desktop test_desktop_ui test_place_search -v
+python -m unittest test_desktop test_desktop_ui test_place_search test_course_runner test_course_ui test_course_engine -v
 ```
 
 ## Roadmap
 
 - [x] Windows 单文件可执行程序与双版本发行包（v1.0.0）
 - [x] 课程列表自动读取、地图选点与关键词搜索添加地点（v1.1.0）
+- [x] 可选的课程学习页面（v1.2.0）
 - [ ] 更多高校 / 校区地点预设（欢迎补充）
 - [ ] 检查更新（读取 GitHub Releases 最新版本）
 - [ ] 多平台支持（macOS / Linux）
 
-以上未勾选的条目为规划，尚未实现，也不代表确定的发布时间。本项目**不会**实现刷课、自动答题、人脸绕过、考试相关自动化等功能。
+以上未勾选的条目为规划，尚未实现，也不代表确定的发布时间。本项目**不会**实现人脸绕过、多设备监控绕过或考试相关自动化。
 
 ## 项目结构
 
@@ -200,6 +226,11 @@ CampusSign/
 ├─ desktop_core.py          # 签到核心（登录、课程、活动、地点匹配、签到、复查）
 ├─ protocol.py              # 学习通平台协议常量
 ├─ place_search.py          # 地图选点网址解析、坐标换算、百度关键词检索
+├─ course_ui.py             # 课程学习页面与高级设置
+├─ course_runner.py         # 课程子进程调度、登录会话、停止与日志脱敏
+├─ course_worker.py         # 课程子进程入口（配置经标准输入传入）
+├─ window_utils.py          # 弹窗按屏幕可用区域定位
+├─ third_party/course_engine/  # 改编自 Mortal004/Xuexitong_shuake 的课程引擎（非商业许可）
 ├─ app_config.py            # 品牌信息与 Edition 档案加载
 ├─ paths.py                 # 资源与数据目录定位（源码 / 打包兼容）
 ├─ disclaimer.py            # 《用户须知》文案
@@ -210,6 +241,7 @@ CampusSign/
 ├─ test_desktop.py          # 签到核心回归测试
 ├─ test_desktop_ui.py       # 界面离线集成测试
 ├─ test_place_search.py     # 地点检索离线测试
+├─ test_course_*.py         # 课程学习离线测试（不启动浏览器）
 ├─ CxSign.spec / build_release.py   # PyInstaller 打包与双版本发行包构建
 └─ start_windows.vbs        # Windows 静默启动器
 ```
@@ -224,11 +256,11 @@ CampusSign/
 
 ## 接口参考与致谢
 
-CxSign 的实现参考了社区公开的学习通接口调用经验，当前项目代码、界面、配置体系和文档由本项目维护。感谢社区开发者的分享。本项目使用的第三方 Python 库及其许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+CxSign 的签到实现参考了社区公开的学习通接口调用经验，当前项目代码、界面、配置体系和文档由本项目维护。课程学习引擎改编自 [Mortal004/Xuexitong_shuake](https://github.com/Mortal004/Xuexitong_shuake)，保留原作者版权与**非商业许可**（见 [third_party/course_engine/LICENSE](third_party/course_engine/LICENSE)），根目录 MIT 许可不覆盖这部分。感谢社区开发者的分享。本项目使用的第三方 Python 库及其许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ## 免责声明
 
-本项目为第三方开源学习与技术交流项目，与超星学习通、山西财经大学及百度地图官方均无关联、合作或授权关系。请遵守所在学校、课程和平台的规定，在规则允许的范围内使用。详见 [免责声明](docs/DISCLAIMER.md) 与软件内《用户须知》。
+本项目为第三方开源学习与技术交流项目，与超星学习通、山西财经大学及百度地图官方均无关联、合作或授权关系。请遵守所在学校、课程和平台的规定，在规则允许的范围内使用；自动化学习可能违反学校或平台规定，相关后果由使用者自行承担。包含课程引擎的发行包仅限非商业使用。详见 [免责声明](docs/DISCLAIMER.md) 与软件内《用户须知》。
 
 ## English Summary
 
@@ -238,8 +270,9 @@ CxSign 的实现参考了社区公开的学习通接口调用经验，当前项�
 - Places can be added by pasting a Baidu Maps URL (offline conversion, no registration), by keyword search with your own Baidu AK, by pasting coordinates (BD-09 / GCJ-02 / WGS-84), or by JSON import.
 - **Generic Edition** works for any school. **SCUFE Edition** adds presets for Shanxi University of Finance and Economics.
 - Accounts and settings stay in local files next to the app; there is no developer server or telemetry.
+- **Optional course learning (v1.2.0)**: log in through the official site in a browser window, pick courses, and let it play and page through chapter tasks. Quiz answering, AI discussion and auto-submit are off by default. The course engine is adapted from Mortal004/Xuexitong_shuake under a **non-commercial** license.
 
-Download from [Releases](https://github.com/Xiaotian69/CampusSign/releases/latest). Licensed under [MIT](LICENSE). Not affiliated with Chaoxing, any university or Baidu.
+Download from [Releases](https://github.com/Xiaotian69/CampusSign/releases/latest). Own code under [MIT](LICENSE); `third_party/course_engine/` keeps its non-commercial license. Not affiliated with Chaoxing, any university or Baidu.
 
 ---
 

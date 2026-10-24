@@ -102,6 +102,15 @@ def main():
     generic.update_course_hint()
     generic.show_page('sign')
     capture(generic, 'sign_generic.png')
+    # 课程学习页：只模拟“已登录”状态和占位课程，不启动浏览器
+    courses = generic.pages['courses']
+    courses.set_courses(list(PLACEHOLDER_COURSES))
+    courses.course_list.selection_set(0)
+    courses.runner.state = 'ready'
+    courses._update_controls()
+    courses.status.set('已登录 · 选择课程后点击“开始”')
+    generic.show_page('courses')
+    capture(generic, 'courses_generic.png')
     generic.destroy()
 
 
