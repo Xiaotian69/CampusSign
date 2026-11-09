@@ -141,52 +141,97 @@ def check_video_question(driver,API,video_title_choice):
     except:
         return
 
+VIDEO_PROBE_JS = """
+var v = document.querySelector('video');
+if (!v) { return null; }
+return {
+  paused: v.paused,
+  t: v.currentTime,
+  d: (isFinite(v.duration) ? v.duration : 0),
+  ended: v.ended,
+  rs: v.readyState,
+  err: (v.error ? v.error.code : 0)
+};
+"""
+
+_stall_limit_seconds = 30      # 连续无法推进多少秒才判失败（原来 3 秒）
+_reload_every_seconds = 15     # 每卡这么久尝试原地重载播放器
+_speed_noted = set()
+
+
+def video_probe(driver):
+    """读取播放器真实状态；读不到返回 None。界面文本不再作为判据。"""
+    try:
+        return driver.execute_script(VIDEO_PROBE_JS)
+    except Exception:
+        return None
+
+
+def video_duration_text(driver):
+    """从 video 元素取总时长，格式 m:ss；取不到返回 None。"""
+    try:
+        seconds = driver.execute_script(
+            "var v = document.querySelector('video'); if (!v) { return 0; }"
+            "return (isFinite(v.duration) ? v.duration : 0);")
+    except Exception:
+        return None
+    try:
+        seconds = float(seconds)
+    except (TypeError, ValueError):
+        return None
+    if not seconds or seconds <= 0:
+        return None
+    total = int(round(seconds))
+    return '%d:%02d' % (total // 60, total % 60)
+
+
+def apply_speed(driver, speed):
+    """设置倍速并读回真实值；平台限制时只提示一次，不反复刷屏。"""
+    try:
+        actual = driver.execute_script(
+            "var v = document.querySelector('video'); if (!v) { return 0; }"
+            "try { v.playbackRate = arguments[0]; } catch (e) {}"
+            "return v.playbackRate;", float(speed))
+    except Exception:
+        return None
+    try:
+        actual = float(actual)
+    except (TypeError, ValueError):
+        return None
+    if 0 < actual and abs(actual - float(speed)) > 0.05 and actual not in _speed_noted:
+        _speed_noted.add(actual)
+        print(color.yellow(f'平台把倍速限制为 {actual} 倍，按实际速率播放'), flush=True)
+    return actual
+
+
+def resume_video(driver):
+    """三级恢复：JS play() -> 播放按钮（宽松匹配）-> 放弃。"""
+    try:
+        played = driver.execute_script(
+            "var v = document.querySelector('video'); if (!v) { return false; }"
+            "var p = v.play(); if (p && p.catch) { p.catch(function () {}); }"
+            "return true;")
+        if played:
+            return True
+    except Exception:
+        pass
+    for selector in ('button.vjs-play-control', '[class*="vjs-play-control"]', '.vjs-big-play-button'):
+        try:
+            element = driver.find_element(By.CSS_SELECTOR, selector)
+            classes = element.get_attribute('class') or ''
+            if selector == '.vjs-big-play-button' or 'vjs-paused' in classes:
+                element.click()
+                return True
+        except Exception:
+            continue
+    return False
+
+
 def check_vido_play(driver, last_time, current_time,speed,pass_face,vido_iframe):
-    global b, pause_start_time
-    with open(r'task/tool/account_info.json', 'r', encoding='utf-8') as f:
-        account_info = json.load(f)
-    if last_time == current_time and current_time != '':
-        pause_duration = time.time() - pause_start_time
-        b += 1
-        if  pause_duration >= 2 and b!=3:
-            try:
-                print(color.red(f'当前视频播放被暂停,点击继续播放'), flush=True)
-                driver.find_element(By.CSS_SELECTOR,
-                                    '[class="vjs-play-control vjs-control vjs-button vjs-paused"]').click()
-            except :
-                print(color.red(f'点击失败'), flush=True)
-                driver.switch_to.default_content()
-                delete_face_popup(driver,pass_face)
-                driver.switch_to.frame('iframe')
-                driver.switch_to.frame(vido_iframe)
-            pause_start_time = time.time()  # 记录第一次检测到暂停的时间
-        elif b == 3 and int(speed) >= 2:
-            # 当暂停时间间隔小于2秒时，执行原elif的代码
-            try:
-                if int(speed)>2:
-                    print(color.red(f'当前视频已被设置不能调节高倍数，现在将倍数调至2倍'), flush=True)
-                    new_speed=2
-                    account_info['speed'] = '2'
-                else:
-                    new_speed=1
-                    print(color.red(f'当前视频已被设置不能调节高倍数，现在将倍数调至1倍'), flush=True)
-                    account_info['speed'] = '1'
-                driver.execute_script("document.querySelectorAll('video').forEach(v => v.playbackRate = arguments[0]);", new_speed)
-                print(color.green('调节成功'), flush=True)
-                try:
-                    driver.find_element(By.CSS_SELECTOR,
-                                        '[class="vjs-play-control vjs-control vjs-button vjs-paused"]').click()
-                except:
-                    print(color.yellow(f'点击播放失败'), flush=True)
-            except:
-                pass
-            with open(r'task/tool/account_info.json', 'w', encoding='utf-8') as fil:
-                json.dump(account_info, fil)
-        elif b==3 and int(speed)==1:
-            raise Exception('视频播放异常')
-    else:
-        pause_start_time = 0  # 视频正常播放，重置暂停时间记录
-        b=0
+    """保留旧签名以兼容外部调用；实际判停已改到 check_vido_finish 里用 video_probe。"""
+    if last_time == current_time:
+        return resume_video(driver)
+    return True
 
 def handle_video_error_alert(driver):
     try:
@@ -206,56 +251,96 @@ def handle_video_error_alert(driver):
         return
 
 def check_vido_finish(driver,i,time_start,total_time,vido_iframe,lock_screen,API,video_title_choice,speed,pass_face):
-    last_time = 0
-    h = 0
-    # 判断是否完成任务
+    """等待任务点完成。
+
+    判据从「界面时间文本」换成 video 元素的真实状态：
+      - 暂停时先尝试 JS play()，再退回按钮点击；
+      - 连续无法推进 30 秒才判失败（原来 3 秒）；
+      - 中途每 15 秒原地重载一次播放器，处理断流与线路菜单；
+      - 播放结束但任务点未完成时，用 JS 重播一次。
+    """
+    stall_seconds = 0
+    last_position = None
+    replayed = False
+
     while True:
         time.sleep(1)
-        # 每次切换前先处理可能存在的弹窗
-        # handle_video_error_alert(driver)
+
+        # 1) 任务点是否已完成
         driver.switch_to.default_content()
         driver.switch_to.frame('iframe')
-        elements2 = driver.find_elements(By.CLASS_NAME, 'ans-job-icon-clear ')
-        element2 = elements2[i]
-        # 定位到该元素的上一级（父元素）
-        parent_element2 = element2.find_element(By.XPATH, "..")
-        # 获取 parent_element2 的class值
-        parent_element2_class = parent_element2.get_attribute("class")
-        txt = element2.get_attribute('aria-label')
-        # print(parent_element2_class, flush=True)
-        if txt == '任务点已完成' or 'ans-attach-ct ans-job-finished' in parent_element2_class:
-            # pyautogui.scroll(-250)
+        try:
+            elements2 = driver.find_elements(By.CLASS_NAME, 'ans-job-icon-clear ')
+            element2 = elements2[i]
+            parent_element2 = element2.find_element(By.XPATH, "..")
+            parent_class = parent_element2.get_attribute("class") or ''
+            txt = element2.get_attribute('aria-label')
+        except Exception:
+            txt, parent_class = '', ''
+        if txt == '任务点已完成' or 'ans-attach-ct ans-job-finished' in parent_class:
             print(color.green(f'已完成第{i + 1}个视频'), flush=True)
-            time_end = time.time()
-            print(color.green('总共耗费了%.2f秒.' % (time_end - time_start)), flush=True)
+            print(color.green('总共耗费了%.2f秒.' % (time.time() - time_start)), flush=True)
             break
+
+        # 2) 进播放器读真实状态
+        driver.switch_to.default_content()
+        driver.switch_to.frame('iframe')
+        driver.switch_to.frame(vido_iframe)
+        info = video_probe(driver)
+
+        if info is None:
+            stall_seconds += 1
         else:
-            driver.switch_to.default_content()
-            driver.switch_to.frame('iframe')
-            driver.switch_to.frame(vido_iframe)
-            driver.execute_script("document.querySelectorAll('video').forEach(v => v.playbackRate = arguments[0]);", float(speed))
+            position, duration = info.get('t', 0), info.get('d', 0)
+            if duration > 0:
+                apply_speed(driver, speed)
             check_internet(driver)
-            check_video_question(driver,API,video_title_choice)
-            element = driver.find_element(By.CLASS_NAME, 'vjs-current-time-display')
-            current_time = element.text
-            check_vido_play(driver, last_time, current_time,speed,pass_face,vido_iframe)
-            last_time = current_time
-            if current_time == total_time:
-                if h == 0:
-                    h += 1
-                    try:
-                        print(color.yellow('视频已播放完毕，但任务点仍未完成，开始重播'), flush=True)
-                        driver.find_element(By.CSS_SELECTOR,
-                                            '[class="vjs-play-control vjs-control vjs-button vjs-paused vjs-ended"]').click()
-                    except:
-                        print(color.red(f'点击失败'), flush=True)
-                else:
+            check_video_question(driver, API, video_title_choice)
+
+            if info.get('ended') or (duration > 0 and position >= duration - 1):
+                if replayed:
                     raise RuntimeError('视频播放结束但平台未确认任务点完成')
-            if lock_screen:
-                import ctypes
-                import os
-                if os.name == "nt":
-                    ctypes.windll.kernel32.SetThreadExecutionState(0x80000003)
+                replayed = True
+                print(color.yellow('视频已播放完毕，任务点未完成，重播一次'), flush=True)
+                driver.execute_script(
+                    "var v = document.querySelector('video');"
+                    "if (v) { v.currentTime = 0; v.play(); }")
+                time.sleep(2)
+                continue
+
+            if info.get('paused'):
+                stall_seconds += 1
+                print(color.red(f'视频暂停中，第 {stall_seconds} 秒尝试恢复'), flush=True)
+                if not resume_video(driver):
+                    driver.switch_to.default_content()
+                    delete_face_popup(driver, pass_face)
+                    driver.switch_to.frame('iframe')
+                    driver.switch_to.frame(vido_iframe)
+            elif last_position is not None and abs(position - last_position) < 0.6:
+                stall_seconds += 1
+                print(color.yellow(f'播放无进展，第 {stall_seconds} 秒'), flush=True)
+            else:
+                stall_seconds = 0
+            last_position = position
+
+        # 3) 每卡 15 秒原地重载一次播放器
+        if 0 < stall_seconds < _stall_limit_seconds and stall_seconds % _reload_every_seconds == 0:
+            print(color.yellow('尝试原地重载播放器'), flush=True)
+            try:
+                driver.execute_script(
+                    "var f = document.querySelector('iframe'); if (f) { f.src = f.src; }")
+                time.sleep(3)
+            except Exception:
+                pass
+
+        if stall_seconds >= _stall_limit_seconds:
+            raise RuntimeError(f'视频连续 {stall_seconds} 秒无法恢复播放')
+
+        if lock_screen:
+            import ctypes
+            import os
+            if os.name == "nt":
+                ctypes.windll.kernel32.SetThreadExecutionState(0x80000003)
     return True
 
 def study_page(driver,course_name,lock_screen,API,video_title_choice,pass_vido,speed,pass_face):
@@ -313,20 +398,24 @@ def study_page(driver,course_name,lock_screen,API,video_title_choice,pass_vido,s
                 print(color.yellow('未找到音量，或已经调节'), flush=True)
 
             time.sleep(1)
-            element=driver.find_element(By.CLASS_NAME,'vjs-duration-display')
-            total_time=element.text
-            if  total_time=='' or total_time=='0:00':
-                print(color.red('获取视频总时长失败'),flush=True)
-                total_time='1'
+            try:
+                total_time = (driver.find_element(By.CLASS_NAME, 'vjs-duration-display').text or '').strip()
+            except Exception:
+                total_time = ''
+            if total_time in ('', '0:00', '0:00:00'):
+                total_time = video_duration_text(driver)
+                if total_time:
+                    print(color.yellow(f'界面上取不到时长，从播放器读出：{total_time}'), flush=True)
+                else:
+                    print(color.red('获取视频总时长失败'), flush=True)
+                    total_time = '1'
             else:
                 print(color.green(f'该视频总时长为：{total_time}'),flush=True)
             click_video_progress_end(driver,pass_vido)
             print(color.yellow('请不要将窗口最小化，这有可能导致脚本异常\n视频播放完毕会自动跳转\n正在观看视频中……'),flush=True)
             driver.switch_to.default_content()
             driver.switch_to.frame('iframe')
-            b = 0
-            pause_start_time = 0  # 添加变量记录暂停开始时间
-            driver.execute_script("document.querySelectorAll('video').forEach(v => v.playbackRate = arguments[0]);", float(speed))
+            apply_speed(driver, speed)
             check_vido_finish(driver,i,time_start,total_time,vido_iframe,lock_screen,API,video_title_choice,speed,pass_face)
             save_record(driver, course_name, time, vido_iframe, '视频')
         driver.switch_to.default_content()
